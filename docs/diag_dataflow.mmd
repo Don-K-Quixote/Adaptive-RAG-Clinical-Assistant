@@ -1,0 +1,33 @@
+flowchart LR
+    subgraph Indexing["Phase 1: Document Indexing"]
+        direction TB
+        PDF["PDF Document"] --> LOAD["PyPDFLoader<br/>Extract Pages"]
+        LOAD --> SPLIT["RecursiveCharacterTextSplitter<br/>800 chars, 150 overlap"]
+        SPLIT --> CHUNKS["Document Chunks<br/>with metadata"]
+        CHUNKS --> EMB["Embedding Model<br/>S-PubMedBert-MS-MARCO"]
+        EMB --> VEC["Vectors Stored<br/>in ChromaDB"]
+        CHUNKS --> BM["BM25 Index<br/>Built in Memory"]
+    end
+
+    subgraph Querying["Phase 2: Query Processing"]
+        direction TB
+        Q["User Question"] --> CLS["Classify Query<br/>9 types"]
+        Q --> DET["Detect Persona<br/>5 levels"]
+        CLS --> CFG["Build ResponseConfig<br/>tables, length, style"]
+        DET --> CFG
+        Q --> SEM["Semantic Search<br/>Top-10 candidates"]
+        Q --> LEX["BM25 Search<br/>Top-10 candidates"]
+        SEM --> FUSE["RRF Fusion<br/>Rank-based merge"]
+        LEX --> FUSE
+        FUSE --> TOP["Top-5 Documents<br/>Deduplicated"]
+        TOP --> PROMPT["Adaptive Prompt<br/>Context + Instructions"]
+        CFG --> PROMPT
+        PROMPT --> LLM["LLM Generation<br/>OpenAI or Ollama"]
+        LLM --> ANS["Formatted Answer<br/>Displayed to User"]
+    end
+
+    VEC -.->|"used by"| SEM
+    BM -.->|"used by"| LEX
+
+    style Indexing fill:#eef2ff,stroke:#4361ee,color:#1a1a2e
+    style Querying fill:#f3e8ff,stroke:#7209b7,color:#1a1a2e

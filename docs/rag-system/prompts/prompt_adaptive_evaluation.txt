@@ -1,0 +1,254 @@
+
+<phase name="1-explore">
+BEFORE WRITING ANYTHING:
+
+1. Use your file tools to map the full codebase structure
+
+2. The following four evaluation files ARE confirmed to exist.
+   Read each one in full before proceeding:
+   - adaptive_vs_generic      (exact file path to be confirmed by you)
+   - classification_accuracy  (exact file path to be confirmed by you)
+   - format_compliance        (exact file path to be confirmed by you)
+   - readability_analysis     (exact file path to be confirmed by you)
+
+3. Also read every supporting file relevant to these evals:
+   - Any shared eval runner, test harness, or evaluation pipeline
+   - Ground truth datasets or annotated test sets referenced in the code
+   - Any config files controlling eval thresholds or parameters
+   - Any scoring utilities, metric helpers, or lexicon files imported by the four eval files above
+
+4. List every file you read, confirm the exact file path for each of the four evals, and identify the entry-point class or function in each file
+
+5. Only proceed to Phase 2 once all four files have been fully read
+</phase>
+
+---
+
+<phase name="2-document">
+Produce a single, professionally formatted .docx file documenting all four evaluations in the Adaptive Evaluation Suite as implemented in THIS codebase.
+
+SAVE TO: docs/rag-system/adaptive_evaluation.docx
+
+---
+
+## DOCUMENT STRUCTURE
+
+### Cover Page
+- Title: "Adaptive Evaluation Suite"
+- Subtitle: "Clinical RAG Assistant — Technical Documentation"
+- Version, date, system name
+
+### Table of Contents
+Auto-generated, linked to all numbered sections below.
+
+---
+
+### Section 1 — Suite Overview
+
+Write a concise paragraph explaining what the Adaptive Evaluation Suite measures and why adaptation matters specifically for clinical RAG (wrong expertise level = wrong clinical outcome).
+
+DIAGRAM 1 — Master Eval Relationship Diagram
+Render as embedded PNG using mermaid CLI.
+Show how all 4 confirmed evals relate to each other and to the RAG pipeline output. Use the actual class/function names discovered in Phase 1 for each node label:
+
+  graph TD
+    A[RAG System Output] --> B[classification_accuracy\nQuery type + expertise correct?]
+    A --> C[readability_analysis\nResponse pitched at right level?]
+    A --> D[format_compliance\nOutput follows clinical format rules?]
+    B --> E[adaptive_vs_generic\nHead-to-head vs baseline]
+    C --> E
+    D --> E
+    E --> F[Adaptive Advantage Score]
+
+Replace node labels with actual function/class names from the code. Add any intermediate steps that exist in the implementation.
+
+---
+
+### Section 2 — Eval 1: classification_accuracy
+
+Use this exact per-evaluation structure for all four sections:
+
+#### 2.1 Purpose
+What is being measured and why it matters for clinical RAG. Explain the consequence of misclassification in a clinical context.
+
+#### 2.2 Inputs
+Table with columns: Input | Type | Source | Description
+Cover: query, predicted label, ground truth label, expertise level if applicable.
+
+#### 2.3 Method
+Document the exact algorithm as implemented in code:
+- Query type taxonomy (list all classes the classifier recognises)
+- How the classifier works (rule-based / ML / LLM-based)
+- Accuracy formula with explicit numerator/denominator
+- Confusion matrix: how it is constructed and what it reveals
+- Weighted accuracy if multiple sub-metrics are combined
+
+Formula block:
+  Query Type Accuracy  = Correct query type predictions / Total queries
+  Expertise Accuracy   = Correct expertise predictions / Total queries
+  Combined Accuracy    = w1 × Query Type Acc + w2 × Expertise Acc (substitute actual weights from the code)
+
+DIAGRAM 2 — Classification Flow
+Render as embedded PNG:
+Show the path from raw query → classifier → predicted type/level → comparison with ground truth → accuracy score. Use a sequenceDiagram or flowchart — whichever matches the code.
+
+#### 2.4 Output
+- Metric name, scale (0–1 or percentage)
+- What constitutes a good score vs. a poor score
+- Threshold at which action is triggered
+
+#### 2.5 Code Reference
+- File path → class name → method name for every step
+- Any config file controlling thresholds or class definitions
+
+---
+
+### Section 3 — Eval 2: readability_analysis
+
+Follow the same per-evaluation structure (Purpose / Inputs / Method / Output / Code Reference) as Section 2.
+
+#### Method specifics to cover:
+- Which readability metric(s) are computed: Flesch-Kincaid Grade Level, SMOG Index, Dale-Chall, Jargon Density, or others — document only what is in the code
+- Formula for each metric implemented:
+
+  FKGL = 0.39 × (words/sentences) + 11.8 × (syllables/words) - 15.59
+  SMOG = 3 + √(polysyllable_count × 30 / sentence_count)
+
+  (substitute actual formulas from the code)
+
+- How computed scores are mapped to expertise level targets: Show the grade-level range expected for Beginner / Intermediate / Expert
+- How the per-metric component scores are combined into a single Readability Match Rate
+
+DIAGRAM 3 — Readability Scoring Flow
+Render as embedded PNG:
+Show: Generated Response → [Metric 1] → Score 1
+                         → [Metric 2] → Score 2  → Compare to Target Range → Match/Fail
+                         → [Metric N] → Score N
+
+Include the expertise-level target mapping as a table or annotated diagram alongside.
+
+#### Parameter table:
+Parameter | Default | Description | Configured In (cover: target grade ranges per expertise level, jargon lexicon path,  component weights)
+
+---
+
+### Section 4 — Eval 3: format_compliance
+
+Follow the same per-evaluation structure as Section 2.
+
+#### Method specifics to cover:
+- The full list of format rules enforced — document ONLY rules that exist in the code, using their actual rule IDs if present
+- For each rule: what it checks, how violation is detected (regex / NLI / keyword match / structural check), pass/fail scoring
+- How rules vary by query type (eligibility query vs. statistical query vs. adverse event query — only if this distinction exists)
+- How individual rule scores are combined into the overall Format Compliance Score:
+
+  Format Compliance Score = Rules passed / Total applicable rules
+
+DIAGRAM 4 — Format Compliance Flow
+Render as embedded PNG:
+Show: Generated Response → [Rule Checker 1] → Pass/Fail
+                         → [Rule Checker 2] → Pass/Fail  → Compliance Score
+                         → [Rule Checker N] → Pass/Fail
+
+Include a rule registry table: Rule ID | Check Description | Detection Method | Query Types It Applies To
+
+---
+
+### Section 5 — Eval 4: adaptive_vs_generic
+
+Follow the same per-evaluation structure as Section 2.
+
+#### Method specifics to cover:
+- How the Generic Baseline is defined: exact system prompt used, what is held constant (retrieval, LLM, temperature), what differs
+- The test query set: size, annotation method, coverage
+- Which component metrics are compared (pull from Evals 1–3 plus any additional metrics like faithfulness or LLM judge scores)
+- How the LLM judge works if present: prompt format, scoring rubric, blinding/randomisation of response order
+- Delta computation formula:
+
+  Adaptive Advantage Score = mean(
+    Δ Readability Match Rate,
+    Δ Format Compliance Score,
+    Δ Faithfulness Score,
+    Normalised LLM Judge Preference
+  )
+  (substitute actual formula from the code)
+
+DIAGRAM 5 — Adaptive vs Generic Comparison Flow
+Render as embedded PNG using sequenceDiagram:
+
+  participant Q as Test Query Set
+  participant A as Adaptive System
+  participant G as Generic Baseline
+  participant J as Judge / Scorer
+  Q->>A: Query + Expertise Level
+  Q->>G: Same Query (no adaptation)
+  A-->>J: Adaptive Response
+  G-->>J: Generic Response
+  J-->>J: Score both on all metrics
+  J-->>J: Compute delta and advantage score
+
+Adapt to match actual implementation.
+
+---
+
+### Section 6 — Scoring Summary
+
+A single consolidated table covering all four evaluations:
+
+| Eval | Primary Input | Method | Output Metric | Target Threshold |
+|---|---|---|---|---|
+(populate from the four sections above using actual values from code)
+
+Then write a short paragraph interpreting what passing all four thresholds simultaneously means for system quality, and what remediation steps apply if one or more fail.
+
+---
+
+### Section 7 — Running the Suite
+
+Document the exact API call or CLI command to run the full suite and each individual eval. Reference the actual runner class/function.
+
+Example structure to adapt:
+  from src.evaluation.adaptive import EvaluationSuite
+  suite = EvaluationSuite(config_path="...")
+  results = suite.run(evals=[...])
+
+Also document how the Streamlit UI triggers these evals (the "Run Selected Evaluations" button).
+
+---
+
+## OUTPUT REQUIREMENTS
+
+ACCURACY:
+- All four evaluations are confirmed implemented: adaptive_vs_generic, classification_accuracy, format_compliance, readability_analysis
+- The ⚠️ Not yet implemented warning applies only to specific sub-features within an eval — e.g., a scoring formula that is stubbed out, a metric that is imported but never called, or a threshold hardcoded as a placeholder value
+- Never document a scoring formula or rule you cannot find in the code
+- If a formula constant (e.g., a weighting factor) is hardcoded, report its actual value from the source file
+
+CODE ANCHORING:
+- Every major claim must cite: src/path/file.py → ClassName.method()
+- Use inline monospace formatting for all file paths and function names
+- If the eval runner is a single script rather than a class, document it as such
+
+DIAGRAMS:
+- Render every Mermaid diagram as a PNG using the mermaid CLI and embed it inline in the .docx at the correct section position
+- Each diagram must have a numbered caption: "Figure 1 — ..."
+- If mermaid CLI is unavailable, use clearly labelled ASCII art as a fallback — do not skip diagrams
+
+DOCX FORMATTING:
+- Use the docx npm library (or python-docx) to generate the file
+- Cover page with title, subtitle, date
+- Auto-generated Table of Contents
+- Heading 1 for sections, Heading 2 for subsections
+- All parameter and scoring tables with shaded header rows
+- Code references in monospace font (Courier New or equivalent)
+- Page numbers in footer
+- Professional colour scheme: dark navy headers, white body, teal accent on table headers (matching the app UI theme)
+- Each of the four evaluations starts on a new page
+
+CONSISTENCY:
+- Use these exact module names throughout, as confirmed from the codebase — these are the source of truth, not assumed names: adaptive_vs_generic, classification_accuracy, format_compliance, readability_analysis
+- Within each file, use the actual class and function names discovered in Phase 1 — do not rename or generalise them 
+- Use the same expertise level labels as the RAG Pipeline document: Beginner / Intermediate / Expert
+- Use the same component names for shared infrastructure (retrieval, LLM, prompt builder) as appear in rag_pipeline.docx
+
+</phase>

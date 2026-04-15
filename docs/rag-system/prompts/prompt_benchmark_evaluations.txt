@@ -1,0 +1,312 @@
+
+<phase name="1-explore">
+BEFORE WRITING ANYTHING:
+
+1. Use your file tools to map the full codebase structure
+
+2. The following four benchmark evaluation files ARE confirmed to exist. Read each one in full before proceeding:
+   - model_comparison       (exact file path to be confirmed by you)
+   - hybrid_vs_semantic     (exact file path to be confirmed by you)
+   - persona_evaluation     (exact file path to be confirmed by you)
+   - latency_measurement    (exact file path to be confirmed by you)
+
+3. Also read every supporting file relevant to these benchmarks:
+   - Any shared benchmark runner, test harness, or orchestration pipeline
+   - Test corpus files or references to benchmark datasets
+   - Any config files controlling benchmark parameters or thresholds
+   - Any scoring utilities, metric helpers, or reporting modules      imported by the four benchmark files above
+   - Any results storage, comparison, or visualisation infrastructure
+
+4. List every file you read, confirm the exact file path for each of the four benchmarks, and identify the entry-point class or function in each file
+
+5. Only proceed to Phase 2 once all four files have been fully read
+</phase>
+
+---
+
+<phase name="2-document">
+Produce a single, professionally formatted .docx file documenting the complete Benchmark Evaluation framework as implemented in THIS codebase.
+
+SAVE TO: docs/rag-system/benchmark_evaluations.docx
+
+---
+
+## DOCUMENT STRUCTURE
+
+### Cover Page
+- Title: "Benchmark Evaluations"
+- Subtitle: "Clinical RAG Assistant — Technical Documentation"
+- Version, date, system name
+
+### Table of Contents
+Auto-generated, linked to all numbered sections below.
+
+---
+
+### Section 1 — Benchmark Suite Overview
+
+Write a concise paragraph explaining the purpose of the Benchmark Evaluation framework — what it measures independently of any single user query, when benchmarks are run (on demand / scheduled / CI), and how results inform system improvement decisions.
+
+Include a summary table listing all four confirmed benchmarks:
+
+| Benchmark | File | What It Measures | When Run |
+|---|---|---|---|
+| Model Comparison      | model_comparison.*      | [from code] | [from code] |
+| Hybrid vs Semantic    | hybrid_vs_semantic.*    | [from code] | [from code] |
+| Persona Evaluation    | persona_evaluation.*    | [from code] | [from code] |
+| Latency Measurement   | latency_measurement.*   | [from code] | [from code] |
+
+Populate every cell from what you find in the source files. Do not invent descriptions — use docstrings, comments, or function signatures as your source of truth.
+
+DIAGRAM 1 — Benchmarking Pipeline Flow
+Render as embedded PNG using mermaid CLI:
+
+  graph TD
+    A[Test Corpus / Query Set] --> B[Benchmark Runner]
+    B --> C[model_comparison]
+    B --> D[hybrid_vs_semantic]
+    B --> E[persona_evaluation]
+    B --> F[latency_measurement]
+    C --> G[Scoring & Metrics]
+    D --> G
+    E --> G
+    F --> G
+    G --> H[Benchmark Report]
+    H --> I[Comparative Analysis Store]
+    I --> J[Trend / Comparison View]
+
+Adapt this diagram to match the actual orchestration in the code. Replace node labels with actual class/function names from Phase 1. Add or remove nodes to reflect what is actually implemented.
+
+---
+
+### Section 2 — Benchmark 1: Model Comparison
+
+Use this exact per-benchmark structure for all four sections:
+
+#### 2.1 Purpose
+What this benchmark measures and why it matters for the Clinical RAG Assistant. Explain the decision this benchmark informs (e.g., which LLM or embedding model to deploy).
+
+#### 2.2 Inputs
+Table with columns: Input | Type | Source | Description
+Document the test set, model configs, and any reference outputs the benchmark consumes.
+
+#### 2.3 Method
+Document the exact comparison methodology as implemented:
+- What models or configurations are being compared
+- What metrics are computed per model (quality, cost, accuracy)
+- How results are normalised for fair comparison
+- Any statistical significance testing if present
+
+Include formula blocks for any metrics computed:
+
+  Metric formula here in LaTeX-style notation (substitute actual formulas from the code)
+
+DIAGRAM 2 — Model Comparison Flow
+Render as embedded PNG:
+Show: Test Query Set → [Model A] → Scored Output A
+                     → [Model B] → Scored Output B  → Comparison Matrix
+                     → [Model N] → Scored Output N
+Use sequenceDiagram or flowchart — whichever matches the code.
+
+#### 2.4 Output
+- Metric name(s), scale, and interpretation
+- How the "winning" model or config is determined
+- Where results are stored and how they can be retrieved
+
+#### 2.5 Code Reference
+- File path → class name → method name for every step
+- Any config file controlling model list or evaluation parameters
+
+Parameter table: Parameter | Default | Description | Configured In
+
+---
+
+### Section 3 — Benchmark 2: Hybrid vs Semantic
+
+Follow the same per-benchmark structure as Section 2.
+
+#### Method specifics to cover:
+- What "Hybrid" means in this context: the exact combination of dense + sparse retrieval as implemented (BM25 + vector, RRF, etc.)
+- What "Semantic" means: dense-only retrieval baseline
+- Which retrieval metrics are computed for each: Document ONLY the metrics present in the code. Common candidates: Precision@k, Recall@k, MRR, NDCG@k — include only if implemented.
+
+Formula blocks for each implemented metric:
+
+  Precision@k = |{relevant chunks in top-k}| / k
+
+  Recall@k = |{relevant chunks in top-k}| / |{total relevant chunks}|
+
+  MRR = (1/|Q|) × Σ  1 / rank_of_first_relevant_result
+
+  NDCG@k = DCG@k / IDCG@k
+  where DCG@k = Σ (2^rel_i - 1) / log2(i + 1)
+
+  (include only formulas that are actually implemented in the code)
+
+DIAGRAM 3 — Hybrid vs Semantic Comparison Flow
+Render as embedded PNG:
+
+  graph LR
+    Q[Test Query] --> H[Hybrid Retrieval\nDense + Sparse + RRF]
+    Q --> S[Semantic Retrieval\nDense Only]
+    H --> M[Retrieval Metrics]
+    S --> M
+    M --> R[Side-by-Side Results\nPrecision · Recall · MRR · NDCG]
+
+Also include a Precision-Recall conceptual diagram:
+Show the trade-off curve with an annotation explaining how this system interprets it — i.e., at what operating point the system aims to sit and why (clinical context: recall matters more than precision when missing a relevant document has clinical consequence).
+
+#### Parameter table:
+Parameter | Default | Description | Configured In
+(cover: dense_top_k, sparse_top_k, rrf_k, eval_k values,
+ relevance threshold, test set size)
+
+---
+
+### Section 4 — Benchmark 3: Persona Evaluation
+
+Follow the same per-benchmark structure as Section 2.
+
+#### Method specifics to cover:
+- What "persona" means in this benchmark: which user roles or expertise levels are being evaluated (Beginner / Intermediate / Expert — or whatever labels exist in the code)
+- What is being measured per persona: response appropriateness, readability match, format compliance, factual accuracy — document only what the code actually measures 
+- How persona-specific ground truth or expected outputs are defined
+- How results are aggregated across personas to produce an overall persona evaluation score
+
+DIAGRAM 4 — Persona Evaluation Flow
+Render as embedded PNG:
+Show the same query being evaluated across multiple persona contexts and how the results are compared:
+
+  graph TD
+    Q[Test Query Set] --> P1[Persona: Beginner]
+    Q --> P2[Persona: Intermediate]
+    Q --> P3[Persona: Expert / PI]
+    P1 --> S[Per-Persona Scorer]
+    P2 --> S
+    P3 --> S
+    S --> R[Persona Evaluation Report\nAdaptation Gap per Level]
+
+Adapt node labels and persona names to match the actual code.
+
+#### Parameter table:
+Parameter | Default | Description | Configured In
+(cover: persona list, metrics per persona, aggregation method, thresholds per persona level)
+
+---
+
+### Section 5 — Benchmark 4: Latency Measurement
+
+Follow the same per-benchmark structure as Section 2.
+
+#### Method specifics to cover:
+- Which pipeline stages are individually timed (query embedding, dense retrieval, sparse retrieval, RRF fusion, context assembly, LLM generation, end-to-end — only if measured)
+- How timing is instrumented in the code (time.perf_counter / asyncio / middleware / decorator — actual method)
+- Which statistical percentiles are reported (P50, P95, P99, mean)
+- Throughput measurement: queries per second under concurrent load if implemented
+- Acceptable latency thresholds per stage — use actual values from config or hardcoded constants in the source
+
+DIAGRAM 5 — Latency Measurement Flow
+Render as embedded PNG:
+Show a timeline of pipeline stages with timing instrumentation at each boundary:
+
+  graph LR
+    A[Query In] -->|t1| B[Query Embedding]
+    B -->|t2| C[Dense Retrieval]
+    B -->|t2| D[Sparse Retrieval]
+    C -->|t3| E[RRF Fusion]
+    D -->|t3| E
+    E -->|t4| F[Context Assembly]
+    F -->|t5| G[LLM Generation]
+    G -->|t6| H[Response Out]
+
+Adapt to include only the stages that are actually instrumented.
+
+Include a latency budget table showing: Stage | P50 | P95 | P99 | Threshold | Configured In
+
+---
+
+### Section 6 — Comparative Analysis & Reporting
+
+Document how benchmark results are stored, compared, and surfaced:
+
+- Results storage format (JSON / database / CSV / other)
+- How runs are tagged (timestamp, config hash, model version)
+- How two benchmark runs are compared (delta tables, charts)
+- How the Streamlit UI surfaces benchmark results (the benchmark results panel, trend charts — reference actual UI components and the backend functions they call)
+
+DIAGRAM 6 — Results Storage & Comparison Flow
+Render as embedded PNG:
+Show: Run A results → [Storage] ← Run B results
+                          ↓
+                    [Comparator]
+                          ↓
+                    [Delta Report]
+
+Include a sample benchmark report layout using ASCII art showing what a complete benchmark output looks like:
+
+  ╔══════════════════════════════════════════════════╗
+  ║  CLINICAL RAG BENCHMARK REPORT                   ║
+  ║  Run: [run_id]  |  Config: [config_hash]         ║
+  ╠══════════════════════════════════════════════════╣
+  ║  MODEL COMPARISON        [metric] [value] [pass] ║
+  ║  HYBRID VS SEMANTIC      [metric] [value] [pass] ║
+  ║  PERSONA EVALUATION      [metric] [value] [pass] ║
+  ║  LATENCY MEASUREMENT     [metric] [value] [pass] ║
+  ╠══════════════════════════════════════════════════╣
+  ║  OVERALL: N/N checks passed                      ║
+  ╚══════════════════════════════════════════════════╝
+
+Populate with actual metric names and threshold labels from the code.
+
+---
+
+### Section 7 — Running the Benchmarks
+
+Document the exact API call or CLI command to run the full benchmark suite and each individual benchmark. Reference the actual runner class/function discovered in Phase 1.
+
+Also document how the Streamlit UI triggers benchmarks and how results are displayed after a run completes.
+
+---
+
+## OUTPUT REQUIREMENTS
+
+ACCURACY:
+- All four benchmarks are confirmed implemented: model_comparison, hybrid_vs_semantic, persona_evaluation, latency_measurement
+- The ⚠️ Not yet implemented warning applies only to specific sub-features within a benchmark — e.g., a metric that is imported but never called, a threshold that is a placeholder, or a comparison feature that is stubbed
+- Never document a formula, metric, or parameter you cannot find evidence of in the source code
+- If a constant (e.g., a latency threshold) is hardcoded, report its exact value from the source file
+
+CODE ANCHORING:
+- Every major claim must cite: src/path/file.py → ClassName.method()
+- Use inline monospace formatting for all file paths and function names
+- If a benchmark is a standalone script rather than a class, document it as such with the exact script path
+
+DIAGRAMS:
+- Render every Mermaid diagram as a PNG using the mermaid CLI and embed it inline in the .docx at the correct section position
+- Each diagram must have a numbered caption: "Figure 1 — ..."
+- If mermaid CLI is unavailable, use clearly labelled ASCII art as fallback — do not skip diagrams
+- The Precision-Recall diagram in Section 3 must include an annotation explaining the clinical RAG operating point
+
+FORMULA BLOCKS:
+- Present all metric formulas in LaTeX-style notation inside code fences as shown in Section 3
+- Include only formulas that are actually implemented in code
+- If a formula uses a variable (e.g., k in Precision@k), state its actual default value from the config
+
+DOCX FORMATTING:
+- Use the docx npm library (or python-docx) to generate the file
+- Cover page with title, subtitle, date
+- Auto-generated Table of Contents
+- Heading 1 for sections, Heading 2 for subsections
+- All parameter and results tables with shaded header rows
+- Code references in monospace font (Courier New or equivalent)
+- Page numbers in footer
+- Professional colour scheme: dark navy headers, white body, teal accent on table headers (matching the app UI theme)
+- Each of the four benchmarks starts on a new page
+
+CONSISTENCY:
+- Use these exact module names throughout, as confirmed from the codebase — these are the source of truth: model_comparison, hybrid_vs_semantic, persona_evaluation, latency_measurement
+- Within each file, use the actual class and function names discovered in Phase 1 — do not rename or generalise them 
+- Use the same component names for shared infrastructure (HybridRetriever, PromptBuilder, LLMGenerator) as appear in rag_pipeline.docx and adaptive_evaluation.docx
+- Use the same expertise level labels across all documents: Beginner / Intermediate / Expert
+
+</phase>

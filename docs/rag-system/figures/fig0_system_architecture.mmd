@@ -1,0 +1,27 @@
+graph TD
+  subgraph OFFLINE ["Offline — Indexing Phase"]
+    A["Clinical Documents\nPDF · DOCX · XML"] --> B["DocumentLoader\nsrc/ingestion.py"]
+    B --> C["RecursiveCharacterTextSplitter\nchunk_size=800 · overlap=150"]
+    C --> D["EmbeddingService\nS-PubMedBert-MS-MARCO · 768-dim"]
+    D --> E[("ChromaDB\nHNSW · cosine")]
+    C --> F[("BM25Index")]
+  end
+  subgraph ONLINE ["Online — Query Phase"]
+    G["User Query\n+ Persona (5 levels)"] --> H["HybridRetriever\nDense + BM25 + RRF k=60"]
+    E --> H
+    F --> H
+    H --> I["PromptBuilder\nSYSTEM_PROMPT + _GROUNDING_INSTRUCTION\n+ [Source N] tags"]
+    I --> J["LLMGenerator\ngpt-4o-mini (cloud) · llama3.1:8b (local)"]
+    J --> K["FaithfulnessChecker\ncosine similarity · warn@0.45 · flag@0.35"]
+    K --> L["✅ Verified Response\n+ faithfulness_score"]
+  end
+  subgraph EVAL ["Evaluation & Benchmarking"]
+    M["Adaptive Evals\nclassification · readability\nformat · adaptive_vs_generic"]
+    N["Benchmark Evals\nmodel_comparison · hybrid_vs_semantic\npersona_evaluation · latency_measurement"]
+  end
+  L --> M
+  L --> N
+  style OFFLINE fill:#0B1829,color:#7DD3FC
+  style ONLINE  fill:#112240,color:#7DD3FC
+  style EVAL    fill:#1A3356,color:#7DD3FC
+  style L       fill:#10B981,color:#fff

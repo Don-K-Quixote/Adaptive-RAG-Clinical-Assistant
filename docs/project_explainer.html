@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive RAG Clinical Assistant -- Project Explainer</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Highlight.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+
+    <!-- Mermaid.js -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --color-bg: #fafbfc;
+            --color-surface: #ffffff;
+            --color-text: #1a1a2e;
+            --color-text-secondary: #555770;
+            --color-accent: #4361ee;
+            --color-accent-light: #eef2ff;
+            --color-border: #e2e5ea;
+            --color-frontend: #4361ee;
+            --color-backend: #7209b7;
+            --color-database: #f72585;
+            --color-external: #4cc9f0;
+            --sidebar-width: 260px;
+            --section-01: #4361ee;
+            --section-02: #3a0ca3;
+            --section-03: #7209b7;
+            --section-04: #f72585;
+            --section-05: #b5179e;
+            --section-06: #560bad;
+            --section-07: #480ca8;
+            --section-08: #3f37c9;
+            --section-09: #4895ef;
+            --section-10: #4cc9f0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: #1a1a2e;
+            color: #ccc;
+            overflow-y: auto;
+            z-index: 100;
+            padding: 20px 0;
+        }
+
+        .sidebar-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid #2a2a4e;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-logo h2 {
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .sidebar-logo span {
+            color: #4cc9f0;
+        }
+
+        .sidebar nav a {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            color: #aaa;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar nav a:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.05);
+            border-left-color: var(--color-accent);
+        }
+
+        .sidebar nav a .num {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-right: 10px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #3a0ca3 50%, #4361ee 100%);
+            color: #fff;
+            padding: 60px 50px;
+        }
+
+        .hero h1 {
+            font-size: 38px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+        }
+
+        .hero .subtitle {
+            font-size: 18px;
+            color: rgba(255,255,255,0.8);
+            font-weight: 400;
+            max-width: 700px;
+        }
+
+        .hero .meta {
+            margin-top: 18px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* ===== SECTIONS ===== */
+        .section {
+            padding: 50px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .section-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            color: #fff;
+            font-weight: 800;
+            font-size: 16px;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+
+        .section-header h2 {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .section p {
+            max-width: 800px;
+            margin-bottom: 16px;
+            color: var(--color-text-secondary);
+        }
+
+        .section h3 {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 30px 0 12px;
+            color: var(--color-text);
+        }
+
+        .section h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0 8px;
+            color: var(--color-text);
+        }
+
+        /* ===== CALLOUT BOXES ===== */
+        .callout {
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .callout-tip {
+            background: #eef6ff;
+            border-left: 4px solid #4895ef;
+        }
+
+        .callout-warning {
+            background: #fff8e6;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .callout-why {
+            background: #ecfdf5;
+            border-left: 4px solid #10b981;
+        }
+
+        .callout strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* ===== TABLES ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f0f2f5;
+            font-weight: 600;
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        /* ===== CODE BLOCKS ===== */
+        pre {
+            border-radius: 8px;
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+
+        pre code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        code:not(pre code) {
+            background: #f0f2f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        /* ===== MERMAID ===== */
+        .mermaid-container {
+            background: #f8f9fb;
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        /* ===== FILE TREE ===== */
+        .file-tree {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px 24px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            overflow-x: auto;
+            white-space: pre;
+            margin: 16px 0;
+        }
+
+        .file-tree .comment { color: #5c6370; }
+        .file-tree .folder { color: #61afef; }
+        .file-tree .file { color: #98c379; }
+        .file-tree .important { color: #e5c07b; }
+
+        /* ===== LIST STYLES ===== */
+        ul, ol {
+            margin: 10px 0 10px 24px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        /* ===== BADGES ===== */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+            }
+            .main { margin-left: 0; }
+            .section { padding: 30px 20px; }
+            .hero { padding: 40px 20px; }
+        }
+
+        /* Glossary */
+        .glossary-term {
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .glossary-def {
+            color: var(--color-text-secondary);
+            margin-bottom: 12px;
+            padding-left: 16px;
+            border-left: 2px solid var(--color-border);
+        }
+
+        /* Function walkthrough */
+        .fn-block {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ================================================================== -->
+<!-- SIDEBAR                                                             -->
+<!-- ================================================================== -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <h2><span>Adaptive RAG</span><br>Clinical Assistant</h2>
+    </div>
+    <nav>
+        <a href="#section-01"><span class="num" style="background:var(--section-01)">01</span> Project Overview</a>
+        <a href="#section-02"><span class="num" style="background:var(--section-02)">02</span> Tech Stack</a>
+        <a href="#section-03"><span class="num" style="background:var(--section-03)">03</span> Project Structure</a>
+        <a href="#section-04"><span class="num" style="background:var(--section-04)">04</span> Architecture Diagram</a>
+        <a href="#section-05"><span class="num" style="background:var(--section-05)">05</span> Data Flow Diagram</a>
+        <a href="#section-06"><span class="num" style="background:var(--section-06)">06</span> Request Flow</a>
+        <a href="#section-07"><span class="num" style="background:var(--section-07)">07</span> Key Modules</a>
+        <a href="#section-08"><span class="num" style="background:var(--section-08)">08</span> Core Functions</a>
+        <a href="#section-09"><span class="num" style="background:var(--section-09)">09</span> How to Run</a>
+        <a href="#section-10"><span class="num" style="background:var(--section-10)">10</span> Glossary</a>
+    </nav>
+</aside>
+
+<!-- ================================================================== -->
+<!-- MAIN CONTENT                                                        -->
+<!-- ================================================================== -->
+<div class="main">
+
+<!-- HERO -->
+<header class="hero">
+    <h1>Adaptive RAG Clinical Assistant</h1>
+    <div class="subtitle">A Retrieval-Augmented Generation system for clinical trial documentation that adapts response complexity based on user expertise. Built as an M.Tech thesis project at IIT Jodhpur.</div>
+    <div class="meta">Version 2.0.0 &middot; Author: Khalid Siddiqui &middot; Date: 2026-02-18 &middot; Python 3.11+ &middot; Apache 2.0 License</div>
+</header>
+
+<!-- ================================================================== -->
+<!-- SECTION 01: PROJECT OVERVIEW                                        -->
+<!-- ================================================================== -->
+<section class="section" id="section-01">
+    <div class="section-header">
+        <div class="section-number" style="background:var(--section-01)">01</div>
+        <h2>Project Overview</h2>
+    </div>
+
+    <p>
+        Imagine you work at a hospital or pharmaceutical company running a clinical trial -- a carefully controlled medical study to test whether a new drug or treatment is safe and effective. These trials generate enormous documents called IRC Charters (Independent Review Committee Charters) and protocols that can be hundreds of pages long. When someone on the team has a question -- "What are the inclusion criteria for this trial?" or "How do I measure tumor response?" -- they have to search through these massive documents manually. This project solves that problem.
+    </p>
+    <p>
+        The Adaptive RAG Clinical Assistant lets users upload a clinical trial PDF, then ask questions about it in natural language. The system finds the most relevant passages using a sophisticated hybrid search that combines two different search strategies, then feeds those passages to a large language model (LLM) to generate a clear answer. But here is what makes it special: the system detects whether you are a novice just learning the ropes, a seasoned expert, a regulatory professional, or an executive -- and adapts its response accordingly. A novice gets simple explanations with definitions; an expert gets dense technical detail with regulatory citations.
+    </p>
+    <p>
+        The system was built as part of an M.Tech thesis at the Indian Institute of Technology Jodhpur, and demonstrates that persona-aware RAG systems can meaningfully improve the usability of clinical trial documentation for diverse stakeholders.
+    </p>
+</section>
+
+<!-- ================================================================== -->
+<!-- SECTION 02: TECH STACK                                              -->
+<!-- ================================================================== -->
+<section class="section" id="section-02">
+    <div class="section-header">
+        <div class="section-number" style="background:var(--section-02)">02</div>
+        <h2>Tech Stack</h2>
+    </div>
+
+    <p>Every tool in this project was chosen for a specific reason. Here is the complete stack, what each piece does, and why it was selected.</p>
+
+    <table>
+        <thead>
+            <tr><th>Technology</th><th>Role</th><th>Why This One?</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Python 3.11+</strong></td>
+                <td>Core language</td>
+                <td>The standard for ML/AI projects. Rich ecosystem for NLP, embeddings, and LLM integration.</td>
+            </tr>
+            <tr>
+                <td><strong>Streamlit</strong></td>
+                <td>Web interface (frontend)</td>
+                <td>Lets you build interactive web apps in pure Python -- no JavaScript needed. Ideal for data-heavy research demos.</td>
+            </tr>
+            <tr>
+                <td><strong>LangChain</strong></td>
+                <td>LLM orchestration framework</td>
+                <td>Provides pre-built components for document loading, text splitting, vector stores, and retrieval. Acts as the glue connecting all AI pieces.</td>
+            </tr>
+            <tr>
+                <td><strong>ChromaDB</strong></td>
+                <td>Vector database (storing embeddings)</td>
+                <td>Lightweight, runs locally without a server, persists to disk. Perfect for a research project that needs to work on a single machine.</td>
+            </tr>
+            <tr>
+                <td><strong>HuggingFace Transformers + Sentence-Transformers</strong></td>
+                <td>Embedding models</td>
+                <td>Provides access to medical-specialized models like S-PubMedBert-MS-MARCO that understand clinical terminology better than general models.</td>
+            </tr>
+            <tr>
+                <td><strong>OpenAI API</strong></td>
+                <td>Cloud LLM provider (GPT-4o)</td>
+                <td>Top-tier response quality for generating answers. Used when cloud access is acceptable.</td>
+            </tr>
+            <tr>
+                <td><strong>Ollama</strong></td>
+                <td>Local LLM provider</td>
+                <td>Runs LLMs like Llama 3.1 and BioMistral entirely on your machine -- no data leaves the premises. Critical for HIPAA compliance in healthcare settings.</td>
+            </tr>
+            <tr>
+                <td><strong>rank-bm25</strong></td>
+                <td>BM25 lexical search</td>
+                <td>Provides keyword-based search to complement semantic search. Together they form the "hybrid" in hybrid retrieval.</td>
+            </tr>
+            <tr>
+                <td><strong>PyPDF</strong></td>
+                <td>PDF document loading</td>
+                <td>Extracts text from uploaded PDF clinical documents.</td>
+            </tr>
+            <tr>
+                <td><strong>Pydantic v2</strong></td>
+                <td>Data validation</td>
+                <td>Ensures configuration objects (like response settings) are always valid.</td>
+            </tr>
+            <tr>
+                <td><strong>pytest</strong></td>
+                <td>Testing framework</td>
+                <td>Industry standard for Python. The project has 50+ tests covering all core logic.</td>
+            </tr>
+            <tr>
+                <td><strong>ruff</strong></td>
+                <td>Linting and formatting</td>
+                <td>Replaces Black, Flake8, and isort in a single tool. Extremely fast.</td>
+            </tr>
+            <tr>
+                <td><strong>Conda (Miniconda)</strong></td>
+                <td>Environment management</td>
+                <td>Manages Python versions and complex scientific dependencies (like PyTorch) more reliably than pip alone.</td>
+            </tr>
+            <tr>
+                <td><strong>NumPy + Pandas</strong></td>
+                <td>Numerical computation and data analysis</td>
+                <td>Used in the evaluation suite for calculating metrics like diversity scores, latency statistics, and model comparisons.</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<!-- ================================================================== -->
+<!-- SECTION 03: PROJECT STRUCTURE                                       -->
+<!-- ================================================================== -->
+<section class="section" id="section-03">
+    <div class="section-header">
+        <div class="section-number" style="background:var(--section-03)">03</div>
+        <h2>Project Structure</h2>
+    </div>
+
+    <p>Below is every file and folder in the project with a one-line explanation. Think of it as a map of the codebase -- when you need to find something, start here.</p>
+
+    <div class="file-tree"><span class="folder">MTech-Adaptive_RAG_Clinical_Assistant/</span>
+<span class="important">app.py</span>                          <span class="comment"># Main application entry point (Streamlit web UI)</span>
+<span class="important">run_eval.py</span>                     <span class="comment"># CLI entry point for the evaluation suite</span>
+<span class="file">CLAUDE.md</span>                       <span class="comment"># Project conventions and build instructions for AI assistants</span>
+<span class="file">README.md</span>                       <span class="comment"># Project documentation with setup, usage, and results</span>
+<span class="file">pyproject.toml</span>                  <span class="comment"># Python project config: ruff, pytest, mypy settings</span>
+<span class="file">requirements.txt</span>                <span class="comment"># Pinned Python dependencies (pip freeze output)</span>
+<span class="file">environment.yml</span>                 <span class="comment"># Conda environment definition for reproducible setup</span>
+<span class="file">.env.example</span>                    <span class="comment"># Template for environment variables (API keys)</span>
+<span class="file">.gitignore</span>                      <span class="comment"># Files and folders excluded from version control</span>
+<span class="file">LICENSE</span>                         <span class="comment"># Apache 2.0 license</span>
+<span class="file">test_llm_providers.py</span>           <span class="comment"># Standalone script to test LLM provider connectivity</span>
+<span class="folder">src/</span>                            <span class="comment"># Core source code package</span>
+  <span class="file">__init__.py</span>                     <span class="comment"># Package init -- exports all public APIs, version info</span>
+  <span class="important">config.py</span>                       <span class="comment"># All constants: models, defaults, limits, colors</span>
+  <span class="important">personas.py</span>                     <span class="comment"># User type detection and response configuration</span>
+  <span class="important">query_classifier.py</span>             <span class="comment"># Classifies queries into 9 types via regex patterns</span>
+  <span class="important">retrieval.py</span>                    <span class="comment"># RRF algorithm + HybridRetriever combining semantic+BM25</span>
+  <span class="important">embeddings.py</span>                   <span class="comment"># Loads embedding models with fallback chains</span>
+  <span class="important">prompts.py</span>                      <span class="comment"># Builds adaptive LLM prompts from persona + query type</span>
+  <span class="file">utils.py</span>                        <span class="comment"># Utility functions: hashing, diversity, dedup, formatting</span>
+  <span class="folder">llm/</span>                            <span class="comment"># LLM provider abstraction layer</span>
+    <span class="file">__init__.py</span>                     <span class="comment"># Package exports for LLM module</span>
+    <span class="file">base.py</span>                         <span class="comment"># Abstract base class (LLMProvider, LLMResponse)</span>
+    <span class="file">factory.py</span>                      <span class="comment"># LLMFactory: creates providers from config dicts</span>
+    <span class="file">openai_provider.py</span>              <span class="comment"># OpenAI GPT-4o/GPT-4o-mini implementation</span>
+    <span class="file">ollama_provider.py</span>              <span class="comment"># Ollama local model implementation (Llama, BioMistral, etc.)</span>
+<span class="folder">eval/</span>                           <span class="comment"># Evaluation and benchmarking suite</span>
+  <span class="file">__init__.py</span>                     <span class="comment"># Package exports for eval module</span>
+  <span class="file">model_comparison.py</span>             <span class="comment"># Compares 6 embedding models on retrieval quality</span>
+  <span class="file">hybrid_comparison.py</span>            <span class="comment"># Benchmarks hybrid (RRF) vs semantic-only retrieval</span>
+  <span class="file">persona_evaluation.py</span>           <span class="comment"># Tests response quality across all 5 personas</span>
+  <span class="file">latency_measurement.py</span>          <span class="comment"># Measures end-to-end pipeline latency</span>
+  <span class="file">metrics.py</span>                      <span class="comment"># Aggregates results into final metrics summary</span>
+<span class="folder">tests/</span>                          <span class="comment"># pytest test suite</span>
+  <span class="file">conftest.py</span>                     <span class="comment"># Shared fixtures (sample documents, user profiles)</span>
+  <span class="file">test_rrf.py</span>                     <span class="comment"># Tests for RRF score formula and fusion behavior</span>
+  <span class="file">test_personas.py</span>                <span class="comment"># Tests for persona detection and config generation</span>
+  <span class="file">test_query_classifier.py</span>        <span class="comment"># Tests for 9-type query classification</span>
+  <span class="file">test_llm_factory.py</span>             <span class="comment"># Tests for LLM factory, aliases, and provider creation</span>
+  <span class="file">test_config.py</span>                  <span class="comment"># Tests for configuration completeness and consistency</span>
+<span class="folder">docs/</span>                           <span class="comment"># Documentation</span>
+  <span class="file">architecture.md</span>                 <span class="comment"># High-level system architecture and design decisions</span>
+  <span class="file">API.md</span>                          <span class="comment"># API reference for all public modules</span>
+  <span class="file">CONTRIBUTING.md</span>                 <span class="comment"># Contribution guidelines</span>
+<span class="folder">data/</span>                           <span class="comment"># Clinical trial PDF documents (git-ignored)</span>
+<span class="folder">results/</span>                        <span class="comment"># Evaluation outputs: CSVs, summaries, figures (git-ignored)</span>
+<span class="folder">reports/</span>                        <span class="comment"># Generated reports (git-ignored)</span>
+<span class="folder">tasks/</span>                          <span class="comment"># Task tracking files (git-ignored)</span></div>
+
+    <div class="callout callout-tip">
+        <strong>Tip: Where to start reading</strong>
+        If you are new to this codebase, read the files in this order: <code>config.py</code> (to understand the constants), then <code>personas.py</code> and <code>query_classifier.py</code> (the intelligence layer), then <code>retrieval.py</code> (the search engine), then <code>prompts.py</code> (how prompts are built), and finally <code>app.py</code> (where everything comes together).
+    </div>
+</section>
+
+<!-- ================================================================== -->
+<!-- SECTION 04: ARCHITECTURE DIAGRAM                                    -->
+<!-- ================================================================== -->
+<section class="section" id="section-04">
+    <div class="section-header">
+        <div class="section-number" style="background:var(--section-04)">04</div>
+        <h2>Architecture Diagram</h2>
+    </div>
+
+    <p>
+        The diagram below shows every major component in the system and how they connect. The colors indicate component types: blue for the user-facing frontend, purple for backend processing logic, pink for data storage, and teal for external AI services. Arrows show the direction of data flow.
+    </p>
+
+    <div class="arch-diagram" style="margin:20px 0;border-radius:12px;overflow:hidden">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 730" style="width:100%;height:auto;display:block;font-family:'Inter',system-ui,sans-serif">
+<defs>
+  <marker id="arr"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9Z" fill="#64748b"/></marker>
+  <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9Z" fill="#4361EE"/></marker>
+  <marker id="arrP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9Z" fill="#7209B7"/></marker>
+  <marker id="arrK" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9Z" fill="#F72585"/></marker>
+  <marker id="arrM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9Z" fill="#B5179E"/></marker>
+  <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9Z" fill="#10B981"/></marker>
+  <marker id="arrC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,1 L9,5 L0,9Z" fill="#06B6D4"/></marker>
+  <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.08"/></filter>
+</defs>
+<rect x="0" y="0" width="980" height="730" rx="0" fill="#F8FAFC" stroke="none" stroke-width="0"/>
+<rect x="10" y="15" width="960" height="110" rx="12" fill="#EEF2FF" stroke="#4361EE" stroke-width="2"/>
+<rect x="401" y="3" width="177" height="24" rx="6" fill="#4361EE" stroke="none" stroke-width="0"/>
+<text x="489" y="21" dy="0" text-anchor="middle" font-size="10" font-weight="700" font-style="normal" fill="#FFFFFF">Streamlit Web Interface</text>
+<text x="490" y="115" dy="0" text-anchor="middle" font-size="8" font-weight="normal" font-style="italic" fill="#4361EE">app.py  ·  ~700 lines</text>
+<rect x="24" y="32" width="188" height="90" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="22" y="30" width="188" height="90" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="22" y="30" width="4" height="90" rx="2" fill="#4361EE" stroke="none" stroke-width="0"/>
+<text x="118" y="59" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">User Profile</text>
+<text x="118" y="75" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Role + Experience</text>
+<text x="118" y="91" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Years input</text>
+<rect x="230" y="32" width="188" height="90" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="228" y="30" width="188" height="90" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="228" y="30" width="4" height="90" rx="2" fill="#4361EE" stroke="none" stroke-width="0"/>
+<text x="324" y="59" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">Document Upload</text>
+<text x="324" y="75" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">PDF Clinical Trial</text>
+<text x="324" y="91" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">IRCs &amp; Protocols</text>
+<rect x="436" y="32" width="188" height="90" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="434" y="30" width="188" height="90" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="434" y="30" width="4" height="90" rx="2" fill="#4361EE" stroke="none" stroke-width="0"/>
+<text x="530" y="59" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">Query Interface</text>
+<text x="530" y="75" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Natural Language</text>
+<text x="530" y="91" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Question Input</text>
+<rect x="740" y="32" width="210" height="90" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="738" y="30" width="210" height="90" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="738" y="30" width="4" height="90" rx="2" fill="#06B6D4" stroke="none" stroke-width="0"/>
+<text x="845" y="59" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">Chat History</text>
+<text x="845" y="75" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Formatted Answer</text>
+<text x="845" y="91" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Session Cache</text>
+<rect x="745" y="28" width="52" height="14" rx="4" fill="#06B6D4" stroke="none" stroke-width="0"/>
+<text x="771" y="38" dy="0" text-anchor="middle" font-size="7" font-weight="700" font-style="normal" fill="#FFFFFF">OUTPUT</text>
+<rect x="10" y="150" width="440" height="155" rx="12" fill="#F3E8FF" stroke="#7209B7" stroke-width="2"/>
+<rect x="159" y="138" width="142" height="24" rx="6" fill="#7209B7" stroke="none" stroke-width="0"/>
+<text x="230" y="156" dy="0" text-anchor="middle" font-size="10" font-weight="700" font-style="normal" fill="#FFFFFF">Intelligence Layer</text>
+<text x="230" y="295" dy="0" text-anchor="middle" font-size="8" font-weight="normal" font-style="italic" fill="#7209B7">personas.py  ·  query_classifier.py</text>
+<rect x="24" y="170" width="190" height="60" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="22" y="168" width="190" height="60" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="22" y="168" width="4" height="60" rx="2" fill="#7209B7" stroke="none" stroke-width="0"/>
+<text x="119" y="182" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">Persona Detector</text>
+<text x="119" y="198" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">detect_user_type()</text>
+<text x="119" y="214" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">5 Levels: Novice→Expert</text>
+<rect x="240" y="170" width="190" height="60" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="238" y="168" width="190" height="60" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="238" y="168" width="4" height="60" rx="2" fill="#7209B7" stroke="none" stroke-width="0"/>
+<text x="335" y="182" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">Query Classifier</text>
+<text x="335" y="198" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">classify(query)</text>
+<text x="335" y="214" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">9 Types: Definition…</text>
+<rect x="122" y="250" width="205" height="45" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="120" y="248" width="205" height="45" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="120" y="248" width="4" height="45" rx="2" fill="#7209B7" stroke="none" stroke-width="0"/>
+<text x="224" y="262" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">Response Config</text>
+<text x="224" y="278" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Tables · Length · Style · Format</text>
+<rect x="465" y="150" width="505" height="155" rx="12" fill="#FFF1F2" stroke="#F72585" stroke-width="2"/>
+<rect x="657" y="138" width="120" height="24" rx="6" fill="#F72585" stroke="none" stroke-width="0"/>
+<text x="717" y="156" dy="0" text-anchor="middle" font-size="10" font-weight="700" font-style="normal" fill="#FFFFFF">Data Storage</text>
+<text x="717" y="295" dy="0" text-anchor="middle" font-size="8" font-weight="normal" font-style="italic" fill="#F72585">Built once on document upload</text>
+<rect x="479" y="170" width="225" height="60" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="477" y="168" width="225" height="60" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="477" y="168" width="4" height="60" rx="2" fill="#F72585" stroke="none" stroke-width="0"/>
+<text x="591" y="182" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">ChromaDB Vector Store</text>
+<text x="591" y="198" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">HuggingFace Embeddings</text>
+<text x="591" y="214" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Cosine similarity search</text>
+<rect x="724" y="170" width="235" height="60" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="722" y="168" width="235" height="60" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="722" y="168" width="4" height="60" rx="2" fill="#F72585" stroke="none" stroke-width="0"/>
+<text x="841" y="182" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">BM25 In-Memory Index</text>
+<text x="841" y="198" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">rank-bm25 library</text>
+<text x="841" y="214" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Term-frequency search</text>
+<rect x="10" y="335" width="960" height="130" rx="12" fill="#FDF4FF" stroke="#B5179E" stroke-width="2"/>
+<rect x="401" y="323" width="177" height="24" rx="6" fill="#B5179E" stroke="none" stroke-width="0"/>
+<text x="489" y="341" dy="0" text-anchor="middle" font-size="10" font-weight="700" font-style="normal" fill="#FFFFFF">Hybrid Retrieval Engine</text>
+<text x="490" y="455" dy="0" text-anchor="middle" font-size="8" font-weight="normal" font-style="italic" fill="#B5179E">src/retrieval.py  ·  ReciprocalRankFusion  ·  HybridRetriever</text>
+<rect x="24" y="355" width="278" height="98" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="22" y="353" width="278" height="98" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="22" y="353" width="4" height="98" rx="2" fill="#B5179E" stroke="none" stroke-width="0"/>
+<text x="163" y="386" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">Semantic Search</text>
+<text x="163" y="402" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">similarity_search(query, k=10)</text>
+<text x="163" y="418" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Meaning-based vector retrieval</text>
+<rect x="322" y="355" width="278" height="98" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="320" y="353" width="278" height="98" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="320" y="353" width="4" height="98" rx="2" fill="#B5179E" stroke="none" stroke-width="0"/>
+<text x="461" y="386" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">Lexical Search (BM25)</text>
+<text x="461" y="402" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">BM25Retriever.invoke(query)</text>
+<text x="461" y="418" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Exact-term keyword retrieval</text>
+<rect x="620" y="355" width="342" height="98" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="618" y="353" width="342" height="98" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="618" y="353" width="4" height="98" rx="2" fill="#9D174D" stroke="none" stroke-width="0"/>
+<text x="791" y="386" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">RRF Fusion  ·  score = Σ 1/(k+rank),  k=60</text>
+<text x="791" y="402" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Rank-based merge of semantic + lexical</text>
+<text x="791" y="418" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Returns deduplicated top-5 documents</text>
+<rect x="10" y="497" width="960" height="103" rx="12" fill="#ECFDF5" stroke="#10B981" stroke-width="2"/>
+<rect x="415" y="485" width="149" height="24" rx="6" fill="#10B981" stroke="none" stroke-width="0"/>
+<text x="489" y="503" dy="0" text-anchor="middle" font-size="10" font-weight="700" font-style="normal" fill="#FFFFFF">Response Generation</text>
+<text x="490" y="590" dy="0" text-anchor="middle" font-size="8" font-weight="normal" font-style="italic" fill="#10B981">src/prompts.py  ·  src/llm/factory.py</text>
+<rect x="24" y="517" width="440" height="75" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="22" y="515" width="440" height="75" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="22" y="515" width="4" height="75" rx="2" fill="#10B981" stroke="none" stroke-width="0"/>
+<text x="244" y="536" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">Adaptive Prompt Builder</text>
+<text x="244" y="552" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Combines: retrieved docs + user query + ResponseConfig</text>
+<text x="244" y="568" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Persona-aware instructions + source attribution</text>
+<rect x="484" y="517" width="468" height="75" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="482" y="515" width="468" height="75" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="482" y="515" width="4" height="75" rx="2" fill="#10B981" stroke="none" stroke-width="0"/>
+<text x="718" y="536" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">LLM Factory</text>
+<text x="718" y="552" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">LLMFactory.create(config)  →  LLMProvider instance</text>
+<text x="718" y="568" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Strategy pattern: swap OpenAI ↔ Ollama with one line</text>
+<rect x="10" y="635" width="960" height="85" rx="12" fill="#E0F7FA" stroke="#06B6D4" stroke-width="2"/>
+<rect x="430" y="623" width="120" height="24" rx="6" fill="#06B6D4" stroke="none" stroke-width="0"/>
+<text x="490" y="641" dy="0" text-anchor="middle" font-size="10" font-weight="700" font-style="normal" fill="#FFFFFF">LLM Providers</text>
+<rect x="24" y="652" width="440" height="63" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="22" y="650" width="440" height="63" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="22" y="650" width="4" height="63" rx="2" fill="#06B6D4" stroke="none" stroke-width="0"/>
+<text x="244" y="665" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">OpenAI  (Cloud)</text>
+<text x="244" y="681" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">GPT-4o  ·  GPT-4o-mini</text>
+<text x="244" y="697" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">REST API  ·  OPENAI_API_KEY env var</text>
+<rect x="484" y="652" width="468" height="63" rx="8" fill="#00000012" stroke="none" stroke-width="0"/>
+<rect x="482" y="650" width="468" height="63" rx="8" fill="#FFFFFF" stroke="#E2E5EA" stroke-width="1"/>
+<rect x="482" y="650" width="4" height="63" rx="2" fill="#0284C7" stroke="none" stroke-width="0"/>
+<text x="718" y="665" dy="0" text-anchor="middle" font-size="11" font-weight="600" font-style="normal" fill="#1A1A2E">Ollama  (Local / Air-gapped)</text>
+<text x="718" y="681" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Llama 3.1 8B  ·  BioMistral 7B  ·  MedGemma 4B</text>
+<text x="718" y="697" dy="0" text-anchor="middle" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Fully on-premise — no data leaves the device</text>
+<path d="M116,125 L116,168" fill="none" stroke="#4361EE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrB)"/>
+<path d="M528,125 C528,155 333,155 333,168" fill="none" stroke="#4361EE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrB)"/>
+<path d="M117,228 L117,238 L222,238 L222,248" fill="none" stroke="#7209B7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrP)"/>
+<path d="M333,228 L333,238 L222,238" fill="none" stroke="#7209B7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#)"/>
+<path d="M322,125 C322,145 589,145 589,168" fill="none" stroke="#F72585" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrK)"/>
+<path d="M362,125 C362,145 839,145 839,168" fill="none" stroke="#F72585" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrK)"/>
+<rect x="364" y="132" width="178.5" height="14" rx="4" fill="white" opacity="0.92"/>
+<text x="368" y="142" dy="0" text-anchor="start" font-size="8" font-weight="normal" font-style="italic" fill="#F72585">PyPDFLoader → Splitter → Chunks</text>
+<path d="M589,305 L589,329 L161,329 L161,353" fill="none" stroke="#F72585" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5,3" marker-end="url(#arrK)"/>
+<path d="M839,305 L839,329 L459,329 L459,353" fill="none" stroke="#F72585" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5,3" marker-end="url(#arrK)"/>
+<rect x="161" y="316" width="79.5" height="14" rx="4" fill="white" opacity="0.92"/>
+<text x="165" y="326" dy="0" text-anchor="start" font-size="8" font-weight="normal" font-style="italic" fill="#F72585">vector lookup</text>
+<rect x="459" y="316" width="68.5" height="14" rx="4" fill="white" opacity="0.92"/>
+<text x="463" y="326" dy="0" text-anchor="start" font-size="8" font-weight="normal" font-style="italic" fill="#F72585">term lookup</text>
+<path d="M528,125 C528,210 457,210 457,329 C457,358 161,358 161,353" fill="none" stroke="#4361EE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrB)"/>
+<path d="M528,125 C528,220 457,220 457,329 C457,361 459,361 459,353" fill="none" stroke="#4361EE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrB)"/>
+<rect x="456" y="260" width="63.0" height="14" rx="4" fill="white" opacity="0.92"/>
+<text x="460" y="270" dy="0" text-anchor="start" font-size="8" font-weight="normal" font-style="italic" fill="#4361EE">user query</text>
+<path d="M300,402 L618,402" fill="none" stroke="#B5179E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrM)"/>
+<path d="M598,402 L618,402" fill="none" stroke="#B5179E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#)"/>
+<rect x="311" y="388" width="101.5" height="14" rx="4" fill="white" opacity="0.92"/>
+<text x="315" y="398" dy="0" text-anchor="start" font-size="8" font-weight="normal" font-style="italic" fill="#B5179E">ranked candidates</text>
+<path d="M120,293 L5,293 L5,515 L22,515" fill="none" stroke="#7209B7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6,3" marker-end="url(#arrP)"/>
+<text x="3" y="404" text-anchor="middle" font-size="8" fill="#7209B7" font-style="italic" transform="rotate(-90 3 404)">ResponseConfig</text>
+<path d="M789,465 C789,500 462,500 462,515" fill="none" stroke="#B5179E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrM)"/>
+<rect x="516" y="477" width="173.0" height="14" rx="4" fill="white" opacity="0.92"/>
+<text x="520" y="487" dy="0" text-anchor="start" font-size="8" font-weight="normal" font-style="italic" fill="#B5179E">top-5 docs + scores + metadata</text>
+<path d="M462,552 L482,552" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrG)"/>
+<rect x="463" y="538" width="41.0" height="14" rx="4" fill="white" opacity="0.92"/>
+<text x="467" y="548" dy="0" text-anchor="start" font-size="8" font-weight="normal" font-style="italic" fill="#10B981">prompt</text>
+<path d="M716,600 C716,640 242,640 242,650" fill="none" stroke="#06B6D4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrC)"/>
+<path d="M716,600 L716,650" fill="none" stroke="#06B6D4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrC)"/>
+<rect x="466" y="617" width="118.0" height="14" rx="4" fill="white" opacity="0.92"/>
+<text x="470" y="627" dy="0" text-anchor="start" font-size="8" font-weight="normal" font-style="italic" fill="#06B6D4">LLMProvider instance</text>
+<path d="M922,677 L975,677 L975,70 L948,70" fill="none" stroke="#06B6D4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"  marker-end="url(#arrC)"/>
+<text x="977" y="373" text-anchor="middle" font-size="8" fill="#06B6D4" font-style="italic" transform="rotate(-90 977 373)">LLM response</text>
+<rect x="22" y="707" width="12" height="12" rx="3" fill="#4361EE" stroke="none" stroke-width="0"/>
+<text x="38" y="716" dy="0" text-anchor="start" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Frontend</text>
+<rect x="114" y="707" width="12" height="12" rx="3" fill="#7209B7" stroke="none" stroke-width="0"/>
+<text x="130" y="716" dy="0" text-anchor="start" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Intelligence</text>
+<rect x="230" y="707" width="12" height="12" rx="3" fill="#F72585" stroke="none" stroke-width="0"/>
+<text x="246" y="716" dy="0" text-anchor="start" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Storage</text>
+<rect x="316" y="707" width="12" height="12" rx="3" fill="#B5179E" stroke="none" stroke-width="0"/>
+<text x="332" y="716" dy="0" text-anchor="start" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Retrieval</text>
+<rect x="414" y="707" width="12" height="12" rx="3" fill="#10B981" stroke="none" stroke-width="0"/>
+<text x="430" y="716" dy="0" text-anchor="start" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">Generation</text>
+<rect x="518" y="707" width="12" height="12" rx="3" fill="#06B6D4" stroke="none" stroke-width="0"/>
+<text x="534" y="716" dy="0" text-anchor="start" font-size="9" font-weight="normal" font-style="normal" fill="#64748B">LLM Providers</text>
+</svg>
+</div>
+
+    <p>
+        The key takeaway is that the system follows a clear pipeline: user input flows through an intelligence layer (persona detection + query classification), then through a hybrid retrieval engine, and finally through an adaptive prompt builder before reaching the LLM. This separation of concerns means each component can be tested, improved, or replaced independently -- for example, you could swap ChromaDB for Pinecone without touching the persona logic.
+    </p>
+</section>
+
+<!-- ================================================================== -->
+<!-- SECTION 05: DATA FLOW DIAGRAM                                       -->
+<!-- ================================================================== -->
+<section class="section" id="section-05">
+    <div class="section-header">
+        <div class="section-number" style="background:var(--section-05)">05</div>
+        <h2>Data Flow Diagram</h2>
+    </div>
+
+    <p>
+        This diagram traces the complete lifecycle of data through the system, from the moment a PDF is uploaded to when a formatted answer appears on screen. There are two distinct phases: the indexing phase (which happens once when a document is uploaded) and the query phase (which happens every time the user asks a question).
+    </p>
+
+    <div class="mermaid-container">
+        <pre class="mermaid">
+flowchart LR
+    subgraph Indexing["Phase 1: Document Indexing"]
+        direction TB
+        PDF["PDF Document"] --> LOAD["PyPDFLoader<br/>Extract Pages"]
+        LOAD --> SPLIT["RecursiveCharacterTextSplitter<br/>800 chars, 150 overlap"]
+        SPLIT --> CHUNKS["Document Chunks<br/>with metadata"]
+        CHUNKS --> EMB["Embedding Model<br/>S-PubMedBert-MS-MARCO"]
+        EMB --> VEC["Vectors Stored<br/>in ChromaDB"]
+        CHUNKS --> BM["BM25 Index<br/>Built in Memory"]
+    end
+
+    subgraph Querying["Phase 2: Query Processing"]
+        direction TB
+        Q["User Question"] --> CLS["Classify Query<br/>9 types"]
+        Q --> DET["Detect Persona<br/>5 levels"]
+        CLS --> CFG["Build ResponseConfig<br/>tables, length, style"]
+        DET --> CFG
+        Q --> SEM["Semantic Search<br/>Top-10 candidates"]
+        Q --> LEX["BM25 Search<br/>Top-10 candidates"]
+        SEM --> FUSE["RRF Fusion<br/>Rank-based merge"]
+        LEX --> FUSE
+        FUSE --> TOP["Top-5 Documents<br/>Deduplicated"]
+        TOP --> PROMPT["Adaptive Prompt<br/>Context + Instructions"]
+        CFG --> PROMPT
+        PROMPT --> LLM["LLM Generation<br/>OpenAI or Ollama"]
+        LLM --> ANS["Formatted Answer<br/>Displayed to User"]
+    end
+
+    VEC -.->|"used by"| SEM
+    BM -.->|"used by"| LEX
+
+    style Indexing fill:#eef2ff,stroke:#4361ee,color:#1a1a2e
+    style Querying fill:#f3e8ff,stroke:#7209b7,color:#1a1a2e
+        </pre>
+    </div>
+
+    <p>
+        Notice how the two phases are connected by the data stores (ChromaDB and BM25 index) built during indexing. During the query phase, both retrieval paths run in parallel, then merge through RRF fusion. The "intelligence" (persona detection and query classification) happens in parallel with retrieval, and all three streams converge at the prompt builder. This parallel design keeps latency low -- the system does not wait for persona detection to finish before starting the search.
+    </p>
+</section>
+
+<!-- ================================================================== -->
+<!-- SECTION 06: REQUEST FLOW (Sequence Diagram)                         -->
+<!-- ================================================================== -->
+<section class="section" id="section-06">
+    <div class="section-header">
+        <div class="section-number" style="background:var(--section-06)">06</div>
+        <h2>Query / Request Flow</h2>
+    </div>
+
+    <p>
+        Let us walk through exactly what happens when a user types a question and clicks "Get Answer." This sequence diagram shows the step-by-step interaction between all the system components, in the exact order they execute.
+    </p>
+
+    <div class="mermaid-container">
+        <pre class="mermaid">
+sequenceDiagram
+    actor User
+    participant UI as Streamlit UI
+    participant QC as QueryClassifier
+    participant PD as PersonaDetector
+    participant HR as HybridRetriever
+    participant CDB as ChromaDB
+    participant BM as BM25 Index
+    participant RRF as RRF Fusion
+    participant PB as PromptBuilder
+    participant LF as LLMFactory
+    participant LLM as LLM Provider
+
+    User->>UI: Types question and clicks Get Answer
+    UI->>UI: Check cache (hash of query)
+    UI->>QC: classify_query(question)
+    QC-->>UI: QueryType (e.g. PROCEDURE)
+    UI->>PD: detect_user_type(profile)
+    PD-->>UI: UserType (e.g. EXPERT)
+    UI->>PD: get_response_config(user_type, query_type)
+    PD-->>UI: ResponseConfig (tables, length, style)
+    UI->>HR: retrieve_with_metadata(question, top_k=5)
+    HR->>CDB: similarity_search(question, k=10)
+    CDB-->>HR: 10 semantic results
+    HR->>BM: invoke(question)
+    BM-->>HR: 10 lexical results
+    HR->>RRF: fuse(semantic, lexical, top_n=5)
+    RRF-->>HR: 5 RRFResult objects
+    HR-->>UI: documents + timing + stats
+    UI->>UI: deduplicate_documents()
+    UI->>PB: build_adaptive_prompt(docs, query, config)
+    PB-->>UI: Complete prompt string
+    UI->>LF: LLMFactory.create(provider_config)
+    LF-->>UI: LLMProvider instance
+    UI->>LLM: generate(prompt, temperature=0)
+    LLM-->>UI: Response text
+    UI->>UI: Cache result
+    UI-->>User: Display answer + sources + stats
+        </pre>
+    </div>
+
+    <p>
+        Here is what each step means in plain English:
+    </p>
+    <ol>
+        <li><strong>Cache check</strong>: The system hashes the query to see if it has already been answered. If so, it returns the cached result instantly.</li>
+        <li><strong>Query classification</strong>: The question is analyzed using regex patterns to determine its type (definition, procedure, compliance, etc.).</li>
+        <li><strong>Persona detection</strong>: The user's role and experience years are checked against keyword rules to determine their expertise level.</li>
+        <li><strong>Response config</strong>: The persona and query type are combined to create a configuration object that controls response formatting (use tables? include definitions? how many words?).</li>
+        <li><strong>Hybrid retrieval</strong>: The question is sent to both ChromaDB (semantic/meaning search) and BM25 (keyword search). Each returns 10 candidate passages.</li>
+        <li><strong>RRF fusion</strong>: The 20 candidates are merged using Reciprocal Rank Fusion, which boosts documents that appear in both result sets. The top 5 are kept.</li>
+        <li><strong>Prompt building</strong>: The retrieved passages, the user's question, and the response configuration are assembled into a carefully structured prompt with specific instructions for the LLM.</li>
+        <li><strong>LLM generation</strong>: The prompt is sent to either OpenAI's API or a local Ollama model. The LLM generates a response following the persona-specific instructions.</li>
+        <li><strong>Display</strong>: The answer is shown to the user along with source references, retrieval statistics, and configuration details.</li>
+    </ol>
+</section>
+
+<!-- ================================================================== -->
+<!-- SECTION 07: KEY MODULES EXPLAINED                                   -->
+<!-- ================================================================== -->
+<section class="section" id="section-07">
+    <div class="section-header">
+        <div class="section-number" style="background:var(--section-07)">07</div>
+        <h2>Key Modules Explained</h2>
+    </div>
+
+    <h3>config.py -- The Central Brain</h3>
+    <p>
+        Think of this file as the project's settings panel. It defines every constant the system uses: which embedding models are available (and their dimensions, types, and recommended use cases), which LLM models are supported (both cloud and local), default chunking sizes (800 characters with 150 overlap), retrieval parameters (RRF k=60, top-k=5), response length limits per persona, and even color codes for highlighting critical information. If you removed this file, every other module would break because they all import their configuration from here.
+    </p>
+
+    <h3>personas.py -- The Expertise Detector</h3>
+    <p>
+        This module is like a smart receptionist who figures out how to talk to you based on who you are. It contains the <code>UserType</code> enum (five levels from NOVICE to EXECUTIVE), the <code>detect_user_type()</code> function that uses keyword matching on job titles plus experience-year thresholds, and the <code>get_response_config()</code> function that generates a complete <code>ResponseConfig</code> object. The config controls everything: whether to include definitions, use tables, add executive summaries, set response length, and more. Without this module, every user would get the same generic response regardless of their background.
+    </p>
+
+    <h3>query_classifier.py -- The Question Understander</h3>
+    <p>
+        When you ask "What is RECIST 1.1?" versus "How do I measure target lesions?", these are fundamentally different types of questions that deserve different response formats. The <code>QueryClassifier</code> uses compiled regex patterns to sort queries into one of nine categories: Definition, Procedure, Compliance, Comparison, Numerical, Timeline, Safety, Eligibility, or Complex. The classification is done in priority order -- more specific types (like Safety or Compliance) are checked before the broad Definition fallback. Multi-part questions with multiple question marks are automatically classified as Complex. Removing this module would mean all questions get the same generic formatting.
+    </p>
+
+    <h3>retrieval.py -- The Search Engine</h3>
+    <p>
+        This is the mathematical heart of the system. It implements Reciprocal Rank Fusion (RRF), an algorithm published in 2009 that is now used by Elasticsearch, Azure Cognitive Search, and Pinecone. The key insight: when you have two search engines that rank documents differently, you can combine their rankings using the formula <code>score(d) = sum of 1/(k + rank)</code>. Documents that both engines rank highly get a higher combined score. The <code>HybridRetriever</code> class wraps this into a clean interface that takes a query and returns the best documents with timing statistics. Without this module, the system would rely on a single search method and miss relevant passages.
+    </p>
+
+    <h3>embeddings.py -- The Model Manager</h3>
+    <p>
+        This module is like a car dealership for embedding models. It knows about six different models (from tiny BERT to medical-specialized PubMedBERT), can load any of them on demand, and has a three-tier fallback chain: if the requested model fails to load, it tries the configured fallback model, and if that fails, it falls back to the lightweight MiniLM model. This resilience means the system never crashes due to a model loading issue -- it gracefully degrades instead.
+    </p>
+
+    <h3>prompts.py -- The Prompt Engineer</h3>
+    <p>
+        This module assembles the final prompt that gets sent to the LLM. It is like writing a detailed brief for a human expert: "Your audience is a novice, the question is about procedures, use numbered steps, include a key takeaway, keep it under 300 words, and here is the context from the document." The <code>ResponseStyler</code> class contains pre-written instruction templates for each persona and query type, and the <code>build_adaptive_prompt()</code> function stitches everything together with source attribution. Without this module, the LLM would have no guidance on how to format or pitch its response.
+    </p>
+
+    <h3>llm/ (Provider Package) -- The AI Gateway</h3>
+    <p>
+        This package implements the Strategy pattern for LLM access. The abstract base class <code>LLMProvider</code> defines the interface (generate, generate_with_metadata, is_available), and two concrete implementations -- <code>OpenAIProvider</code> and <code>OllamaProvider</code> -- handle the actual API calls. The <code>LLMFactory</code> creates the right provider from a simple config dictionary. The Ollama provider includes model aliases (so you can type "biomistral" instead of "adrienbrault/biomistral-7b:Q4_K_M") and supports vision models. This abstraction means you can switch between cloud and local inference by changing one line of configuration.
+    </p>
+
+    <h3>app.py -- The Conductor</h3>
+    <p>
+        This is the 700-line Streamlit application that orchestrates everything. It builds the web interface (sidebar with user profile, document upload area, query input), manages session state (uploaded documents, cached queries, chat history), and wires all the modules together in the correct order. It handles the complete lifecycle: document loading, chunking, embedding, index building, query classification, retrieval, prompt generation, LLM invocation, and result display. It is the glue that makes the system usable by non-programmers.
+    </p>
+
+    <h3>eval/ (Evaluation Suite) -- The Quality Inspector</h3>
+    <p>
+        These five modules form a comprehensive benchmarking system: <code>model_comparison.py</code> tests all six embedding models on 10 queries, <code>hybrid_comparison.py</code> measures whether hybrid search beats semantic-only, <code>persona_evaluation.py</code> generates responses for all five personas and compares word counts and generation times, <code>latency_measurement.py</code> profiles every pipeline stage, and <code>metrics.py</code> aggregates everything into a final report. The entry point <code>run_eval.py</code> lets you run any combination of evaluations from the command line.
+    </p>
+</section>
+
+<!-- ================================================================== -->
+<!-- SECTION 08: CORE FUNCTIONS WALKTHROUGH                              -->
+<!-- ================================================================== -->
+<section class="section" id="section-08">
+    <div class="section-header">
+        <div class="section-number" style="background:var(--section-08)">08</div>
+        <h2>Core Functions Walkthrough</h2>
+    </div>
+
+    <p>Let us examine the most important functions in the codebase, line by line. These are the functions that do the real work.</p>
+
+    <!-- Function 1: RRF fuse -->
+    <h3>1. ReciprocalRankFusion.fuse() -- The Ranking Algorithm</h3>
+    <p>This is the mathematical core of the hybrid retrieval system. It combines search results from two different engines using only their rank positions, not their scores.</p>
+    <div class="fn-block">
+        <pre><code class="language-python">def fuse(
+    self,
+    semantic_results: list[Document],
+    lexical_results: list[Document],
+    top_n: int = DEFAULT_TOP_K,
+) -> list[RRFResult]:
+    doc_scores: dict[str, dict[str, Any]] = {}
+
+    # Process semantic results (rank starts at 1)
+    for rank, doc in enumerate(semantic_results, start=1):
+        doc_id = self._get_document_id(doc)
+        rrf_score = 1.0 / (self.k + rank)
+        doc_scores[doc_id] = {
+            "document": doc,
+            "rrf_score": rrf_score,
+            "semantic_rank": rank,
+            "lexical_rank": None,
+        }
+
+    # Process lexical results (rank starts at 1)
+    for rank, doc in enumerate(lexical_results, start=1):
+        doc_id = self._get_document_id(doc)
+        rrf_score = 1.0 / (self.k + rank)
+        if doc_id in doc_scores:
+            doc_scores[doc_id]["rrf_score"] += rrf_score
+            doc_scores[doc_id]["lexical_rank"] = rank
+        else:
+            doc_scores[doc_id] = {
+                "document": doc,
+                "rrf_score": rrf_score,
+                "semantic_rank": None,
+                "lexical_rank": rank,
+            }
+
+    sorted_items = sorted(doc_scores.values(),
+                          key=lambda x: x["rrf_score"], reverse=True)
+    return [RRFResult(...) for item in sorted_items[:top_n]]</code></pre>
+    </div>
+    <p><strong>How it works, step by step:</strong></p>
+    <ul>
+        <li><strong>Lines 1-5:</strong> The function takes two ranked lists (semantic and lexical) and a desired output size. Think of it like a judge receiving rankings from two different panels.</li>
+        <li><strong>Lines 8-14:</strong> For each document from semantic search, compute its RRF score using <code>1/(k + rank)</code>. With k=60, the top-ranked document gets <code>1/61 = 0.0164</code>, the second gets <code>1/62 = 0.0161</code>, etc. The scores decrease very gradually, which is intentional -- it prevents one low-ranked document from dominating.</li>
+        <li><strong>Lines 17-27:</strong> For each document from BM25 search, compute its score the same way. Here is the crucial part: if the document already appeared in the semantic results, its scores are <strong>added together</strong>. A document ranked #1 by both engines gets <code>1/61 + 1/61 = 0.0328</code> -- nearly double the score of a document found by only one engine.</li>
+        <li><strong>Lines 29-30:</strong> Sort all documents by their combined RRF score and return the top N. Documents found by both engines naturally float to the top.</li>
+    </ul>
+
+    <div class="callout callout-why">
+        <strong>Why This Matters</strong>
+        RRF solves a fundamental problem: BM25 scores can range from 0 to infinity while cosine similarity ranges from 0 to 1. You cannot simply add them together. RRF sidesteps this entirely by using only rank positions, making it mathematically robust regardless of the underlying score distributions.
+    </div>
+
+    <!-- Function 2: detect_user_type -->
+    <h3>2. detect_user_type() -- The Persona Detector</h3>
+    <p>This function looks at a user's job title and experience to figure out what expertise level they are at. Think of it like a hospital triage system that routes patients to the right department.</p>
+    <div class="fn-block">
+        <pre><code class="language-python">def detect_user_type(user_profile: dict) -> UserType:
+    role = user_profile.get("role", "").lower()
+    experience_years = user_profile.get("experience_years", 0)
+
+    def has_keyword(text: str, keyword: str) -> bool:
+        return bool(re.search(rf"\b{re.escape(keyword)}\b", text))
+
+    # Priority 1: Check for regulatory/compliance roles
+    for keyword in ROLE_KEYWORDS[UserType.REGULATORY]:
+        if has_keyword(role, keyword):
+            return UserType.REGULATORY
+
+    # Priority 2: Check for executive/leadership roles
+    for keyword in ROLE_KEYWORDS[UserType.EXECUTIVE]:
+        if has_keyword(role, keyword):
+            return UserType.EXECUTIVE
+
+    # Priority 3: Check for expert/senior roles
+    for keyword in ROLE_KEYWORDS[UserType.EXPERT]:
+        if has_keyword(role, keyword):
+            return UserType.EXPERT
+
+    # Priority 4: Check for novice/entry-level roles
+    for keyword in ROLE_KEYWORDS[UserType.NOVICE]:
+        if has_keyword(role, keyword):
+            return UserType.NOVICE
+
+    # Priority 5: Experience-based fallback
+    if experience_years == 0:
+        return UserType.NOVICE
+    elif experience_years < 3:
+        return UserType.INTERMEDIATE
+    elif experience_years >= 5:
+        return UserType.EXPERT
+
+    return UserType.INTERMEDIATE</code></pre>
+    </div>
+    <p><strong>How it works:</strong></p>
+    <ul>
+        <li><strong>Priority-based matching:</strong> The function checks for role keywords in a specific order. Regulatory roles are checked first because a "Regulatory Affairs Director" should be treated as regulatory, not executive, even though "Director" is an executive keyword.</li>
+        <li><strong>Word-boundary matching:</strong> The <code>has_keyword</code> helper uses regex word boundaries (<code>\b</code>) so that "coo" matches "COO" but not "coordinator." This was a real bug that was fixed in the project history.</li>
+        <li><strong>Experience fallback:</strong> If no role keywords match, the system falls back to experience years: 0 years = novice, 1-2 years = intermediate, 5+ years = expert. This handles cases like "Consultant" or "Analyst" that do not appear in any keyword list.</li>
+    </ul>
+
+    <!-- Function 3: classify_query -->
+    <h3>3. QueryClassifier.classify() -- The Question Sorter</h3>
+    <p>This function reads a question and decides what kind of question it is, so the system can format the answer appropriately.</p>
+    <div class="fn-block">
+        <pre><code class="language-python">@classmethod
+def classify(cls, query: str) -> QueryType:
+    cls._compile_patterns()
+    query_lower = query.lower()
+
+    # Check for complex queries first
+    sentence_count = len([s for s in query.split(".") if s.strip()])
+    question_count = query.count("?")
+
+    if sentence_count > 2 or question_count > 1:
+        return QueryType.COMPLEX
+
+    # Check each query type's patterns in priority order
+    for query_type, patterns in cls._compiled_patterns.items():
+        for pattern in patterns:
+            if pattern.search(query_lower):
+                return query_type
+
+    return QueryType.DEFINITION</code></pre>
+    </div>
+    <p><strong>Key design choices:</strong></p>
+    <ul>
+        <li><strong>Complexity check first:</strong> Questions with multiple sentences or multiple question marks are always classified as COMPLEX, regardless of keywords. "What is RECIST? How does it compare to RANO?" gets COMPLEX treatment with a systematic breakdown.</li>
+        <li><strong>Priority order matters:</strong> The patterns dictionary is ordered so that specific domain types (Procedure, Compliance, Safety) are checked before the broad Definition type. This means "What is the process for adjudication?" matches PROCEDURE (via "process") before it could match DEFINITION (via "What is").</li>
+        <li><strong>Lazy compilation:</strong> Regex patterns are compiled once and cached, so subsequent calls are fast.</li>
+    </ul>
+
+    <!-- Function 4: build_adaptive_prompt -->
+    <h3>4. build_adaptive_prompt() -- The Prompt Assembler</h3>
+    <p>This function takes retrieved documents, the user's question, and the response configuration, and assembles them into a single prompt that tells the LLM exactly how to respond.</p>
+    <div class="fn-block">
+        <pre><code class="language-python">def build_adaptive_prompt(
+    documents: list[Document], query: str, config: ResponseConfig
+) -> str:
+    # Format context from documents with source attribution
+    context_parts = []
+    for i, doc in enumerate(documents, 1):
+        page = doc.metadata.get("page", "N/A")
+        chunk_id = doc.metadata.get("chunk_id", i)
+        context_parts.append(
+            f"[Source {i}: Page {page}, Chunk {chunk_id}]\n{doc.page_content}"
+        )
+    context = "\n\n---\n\n".join(context_parts)
+
+    return ResponseStyler.generate_prompt(context, query, config)</code></pre>
+    </div>
+    <p>This is deceptively simple on the surface. The real complexity lives inside <code>ResponseStyler.generate_prompt()</code>, which combines three template layers: audience instructions (e.g., "Use simple, non-technical language" for novices), query format instructions (e.g., "Use numbered steps" for procedures), and formatting flags (tables, color coding, length limits). The result is a prompt like: "You are an AI assistant. AUDIENCE: Novice user. FORMAT: Use numbered steps. Target length: 300 words. CONTEXT: [5 document excerpts]. QUESTION: How do I measure target lesions?"</p>
+
+    <!-- Function 5: create_embedder -->
+    <h3>5. create_embedder() -- The Model Loader with Fallbacks</h3>
+    <p>This function loads an embedding model and has a resilient three-tier fallback system -- like having a backup generator for your backup generator.</p>
+    <div class="fn-block">
+        <pre><code class="language-python">def create_embedder(
+    model_key: str, device: str = "cpu",
+    normalize_embeddings: bool = True, batch_size: int = 32
+) -> HuggingFaceEmbeddings | None:
+    model_config = EMBEDDING_MODELS.get(model_key, {})
+    model_name = model_config.get("name", model_key)
+
+    try:
+        # Attempt to load the primary model
+        embedder = HuggingFaceEmbeddings(
+            model_name=model_name, model_kwargs={"device": device},
+            encode_kwargs={"normalize_embeddings": normalize_embeddings,
+                           "batch_size": batch_size},
+        )
+        _ = embedder.embed_query("test")  # Verify it works
+        return embedder
+    except Exception:
+        # Try fallback model if configured
+        fallback = model_config.get("fallback")
+        if fallback:
+            try:
+                embedder = HuggingFaceEmbeddings(model_name=fallback, ...)
+                return embedder
+            except Exception:
+                pass
+
+        # Last resort: MiniLM
+        try:
+            return HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2", ...)
+        except Exception:
+            return None</code></pre>
+    </div>
+    <p>The three tiers are: (1) try the requested model, (2) try its configured fallback (e.g., BioBERT falls back to MiniLM), (3) as a last resort, try the lightweight MiniLM model that almost always works. After loading, the function runs a test embedding to verify the model actually works before returning it.</p>
+
+    <!-- Function 6: LLMFactory.create -->
+    <h3>6. LLMFactory.create() -- The Provider Factory</h3>
+    <p>This function creates the right LLM provider from a configuration dictionary, like a vending machine that gives you either a cloud-connected GPT or a local Llama model based on which button you press.</p>
+    <div class="fn-block">
+        <pre><code class="language-python">@classmethod
+def create(cls, config: dict) -> LLMProvider:
+    provider_name = config.get("provider", "ollama").lower()
+
+    if provider_name not in cls.PROVIDERS:
+        raise ValueError(
+            f"Unknown provider: '{provider_name}'. "
+            f"Available: {list(cls.PROVIDERS.keys())}"
+        )
+
+    provider_class = cls.PROVIDERS[provider_name]
+    defaults = cls.DEFAULTS.get(provider_name, {})
+
+    # Merge defaults with provided config
+    merged_config = {**defaults, **config}
+    merged_config.pop("provider", None)
+
+    return provider_class(**merged_config)</code></pre>
+    </div>
+    <p>The factory pattern here means the rest of the application never needs to know which specific provider it is using. It just calls <code>llm.generate(prompt)</code> and gets a response, whether that response came from OpenAI's servers in the cloud or a Llama model running on the user's GPU.</p>
+
+    <!-- Function 7: calculate_diversity_score -->
+    <h3>7. calculate_diversity_score() -- The Quality Metric</h3>
+    <p>This function measures how diverse a set of retrieved documents is -- because returning five passages from the same page is less useful than five passages from different parts of the document.</p>
+    <div class="fn-block">
+        <pre><code class="language-python">def calculate_diversity_score(documents: list[Document]) -> float:
+    if not documents or len(documents) == 1:
+        return 0.0 if not documents else 1.0
+
+    # Page diversity: how many unique pages?
+    pages = [doc.metadata.get("page", 0) for doc in documents]
+    page_diversity = len(set(pages)) / len(documents)
+
+    # Content diversity: Jaccard distance between word sets
+    contents = [set(doc.page_content.lower().split()) for doc in documents]
+    overlaps = []
+    for i in range(len(contents)):
+        for j in range(i + 1, len(contents)):
+            intersection = len(contents[i] & contents[j])
+            union = len(contents[i] | contents[j])
+            overlaps.append(intersection / union if union > 0 else 0)
+
+    content_diversity = 1 - np.mean(overlaps)
+
+    # Combined: 40% page diversity + 60% content diversity
+    return round(0.4 * page_diversity + 0.6 * content_diversity, 3)</code></pre>
+    </div>
+    <p>The score combines two signals: page diversity (are the results from different pages?) and content diversity (do the results contain different words?). The Jaccard similarity between every pair of documents is computed, averaged, and subtracted from 1 to get a diversity score. A score of 1.0 means completely unique results; 0.0 means all results are identical.</p>
+</section>
+
+<!-- ================================================================== -->
+<!-- SECTION 09: HOW TO RUN                                              -->
+<!-- ================================================================== -->
+<section class="section" id="section-09">
+    <div class="section-header">
+        <div class="section-number" style="background:var(--section-09)">09</div>
+        <h2>How to Run the Project</h2>
+    </div>
+
+    <p>Follow these steps from a fresh machine to get the system running. Every command is included -- nothing is assumed.</p>
+
+    <h3>Prerequisites</h3>
+    <ul>
+        <li><strong>Python 3.11+</strong> installed (via <a href="https://www.python.org/downloads/">python.org</a> or Miniconda)</li>
+        <li><strong>Miniconda</strong> recommended: <a href="https://docs.conda.io/en/latest/miniconda.html">https://docs.conda.io/en/latest/miniconda.html</a></li>
+        <li><strong>Git</strong> for cloning the repository</li>
+        <li><strong>For Cloud LLM:</strong> An OpenAI API key (get one at <a href="https://platform.openai.com/api-keys">platform.openai.com</a>)</li>
+        <li><strong>For Local LLM:</strong> <a href="https://ollama.com/">Ollama</a> installed with at least one model pulled</li>
+    </ul>
+
+    <h3>Step 1: Clone and Enter the Project</h3>
+    <pre><code class="language-bash">git clone https://github.com/Don-K-Quixote/Adaptive-RAG-Clinical-Assistant.git
+cd Adaptive-RAG-Clinical-Assistant</code></pre>
+
+    <h3>Step 2: Create the Conda Environment</h3>
+    <p>If the <code>environment.yml</code> file exists (it does in this project):</p>
+    <pre><code class="language-bash">conda env create -f environment.yml
+conda activate adaptive-rag</code></pre>
+    <p>If starting fresh without <code>environment.yml</code>:</p>
+    <pre><code class="language-bash">conda create -n adaptive-rag python=3.11 -y
+conda activate adaptive-rag
+pip install -r requirements.txt</code></pre>
+
+    <h3>Step 3: Configure Environment Variables</h3>
+    <pre><code class="language-bash"># Copy the example env file
+cp .env.example .env
+
+# Edit .env and add your OpenAI API key (for cloud mode)
+# OPENAI_API_KEY=sk-your-key-here</code></pre>
+
+    <div class="callout callout-tip">
+        <strong>Tip: Using Local LLM Only?</strong>
+        If you plan to use only Ollama (local models), you do not need an OpenAI API key. Install Ollama, then pull a model: <code>ollama pull llama3.1:8b</code>. The app will detect it automatically.
+    </div>
+
+    <h3>Step 4: (Optional) Set Up Ollama for Local LLM</h3>
+    <pre><code class="language-bash"># Install Ollama from https://ollama.com/
+# Then pull models:
+ollama pull llama3.1:8b                          # General purpose (recommended)
+ollama pull adrienbrault/biomistral-7b:Q4_K_M    # Medical-specialized
+ollama pull alibayram/medgemma:4b                # Google MedGemma</code></pre>
+
+    <h3>Step 5: Run the Application</h3>
+    <pre><code class="language-bash">streamlit run app.py</code></pre>
+    <p>Open your browser to <code>http://localhost:8501</code>. You should see the Adaptive RAG Clinical Assistant interface.</p>
+
+    <h3>Step 6: Using the Application</h3>
+    <ol>
+        <li>Select your role and experience level in the sidebar</li>
+        <li>Choose your LLM provider (OpenAI Cloud or Ollama Local)</li>
+        <li>Choose an embedding model (S-PubMedBert-MS-MARCO recommended for clinical docs)</li>
+        <li>Upload a clinical trial PDF document</li>
+        <li>Click "Build Index" and wait for processing</li>
+        <li>Type a question and click "Get Answer"</li>
+    </ol>
+
+    <h3>Step 7: Run Tests</h3>
+    <pre><code class="language-bash"># Run all tests (verbose, stop on first failure)
+pytest -xvs
+
+# Run with coverage report
+pytest --cov=src --cov-report=term</code></pre>
+
+    <h3>Step 8: Run Linting</h3>
+    <pre><code class="language-bash">ruff check . --fix
+ruff format .</code></pre>
+
+    <h3>Step 9: Run the Evaluation Suite</h3>
+    <pre><code class="language-bash"># Run all evaluations against a PDF document
+python run_eval.py --document data/Sample-IRC.pdf --all
+
+# Run specific evaluations
+python run_eval.py --document data/Sample-IRC.pdf --models    # Embedding comparison
+python run_eval.py --document data/Sample-IRC.pdf --hybrid    # Hybrid vs semantic
+python run_eval.py --document data/Sample-IRC.pdf --personas  # Persona evaluation
+python run_eval.py --document data/Sample-IRC.pdf --latency   # Latency profiling
+
+# Calculate metrics from existing results
+python run_eval.py --metrics</code></pre>
+
+    <div class="callout callout-warning">
+        <strong>Warning: First Run is Slow</strong>
+        The first time you build an index, the system will download the embedding model from HuggingFace (several hundred MB for medical models). This only happens once -- subsequent runs use the cached model.
+    </div>
+</section>
+
+<!-- ================================================================== -->
+<!-- SECTION 10: GLOSSARY                                                -->
+<!-- ================================================================== -->
+<section class="section" id="section-10">
+    <div class="section-header">
+        <div class="section-number" style="background:var(--section-10)">10</div>
+        <h2>Glossary</h2>
+    </div>
+
+    <p>Every technical term used in this document, defined in plain English.</p>
+
+    <div class="glossary-term">Adaptive Prompt</div>
+    <div class="glossary-def">A prompt (set of instructions sent to an AI model) that changes its wording based on who is asking and what they are asking about. Like a teacher who explains photosynthesis differently to a 5-year-old versus a biology PhD student.</div>
+
+    <div class="glossary-term">BM25</div>
+    <div class="glossary-def">A keyword-based search algorithm (Best Matching 25). It finds documents by matching exact words in your query, weighting rare words more heavily. Think of it as a very smart version of Ctrl+F. It complements semantic search because it catches exact terminology that meaning-based search might miss.</div>
+
+    <div class="glossary-term">Chunking</div>
+    <div class="glossary-def">The process of splitting a long document into smaller pieces (chunks). Like cutting a long newspaper article into individual paragraphs so you can find the one paragraph that answers your question. This project uses 800-character chunks with 150-character overlap so no information falls through the cracks at chunk boundaries.</div>
+
+    <div class="glossary-term">ChromaDB</div>
+    <div class="glossary-def">An open-source vector database that stores embeddings (numerical representations of text) on your local disk. Think of it as a filing cabinet where documents are organized by meaning rather than alphabetically.</div>
+
+    <div class="glossary-term">Clinical Trial</div>
+    <div class="glossary-def">A carefully controlled medical study to test whether a new drug, treatment, or device is safe and effective for humans. Governed by strict regulations and detailed documentation.</div>
+
+    <div class="glossary-term">Conda</div>
+    <div class="glossary-def">A package and environment manager that creates isolated Python environments. Like having separate tool sheds for each project so their tools never interfere with each other.</div>
+
+    <div class="glossary-term">Cosine Similarity</div>
+    <div class="glossary-def">A way to measure how similar two pieces of text are by comparing the angles between their embedding vectors. A score of 1.0 means identical meaning; 0.0 means completely unrelated.</div>
+
+    <div class="glossary-term">Embedding</div>
+    <div class="glossary-def">A list of numbers (a vector) that represents the meaning of a piece of text. Similar texts get similar numbers. "Heart attack" and "myocardial infarction" would have very similar embeddings because they mean the same thing, even though the words are different.</div>
+
+    <div class="glossary-term">Embedding Model</div>
+    <div class="glossary-def">A machine learning model that converts text into embeddings. Medical embedding models (like S-PubMedBert) are trained on medical literature so they understand that "AE" means "adverse event" and not "after effects."</div>
+
+    <div class="glossary-term">Factory Pattern</div>
+    <div class="glossary-def">A programming design pattern where a single function creates different types of objects based on input parameters. Like a vending machine that gives you different drinks based on which button you press.</div>
+
+    <div class="glossary-term">Fallback Chain</div>
+    <div class="glossary-def">A series of backup options tried in sequence when the primary option fails. If Model A fails to load, try Model B; if that fails, try Model C.</div>
+
+    <div class="glossary-term">Hybrid Retrieval</div>
+    <div class="glossary-def">A search strategy that combines two or more different search methods (in this case, semantic search and BM25 keyword search) to get better results than either method alone. Like using both Google and a library catalog to find a book.</div>
+
+    <div class="glossary-term">IRC Charter</div>
+    <div class="glossary-def">Independent Review Committee Charter. A detailed document that describes how an independent panel will review imaging data in a clinical trial. These documents can be 50-200 pages long.</div>
+
+    <div class="glossary-term">LangChain</div>
+    <div class="glossary-def">A Python framework that provides ready-made building blocks for applications powered by large language models. It handles document loading, text splitting, vector storage, and retrieval so you do not have to build these from scratch.</div>
+
+    <div class="glossary-term">LLM (Large Language Model)</div>
+    <div class="glossary-def">An AI model trained on massive amounts of text that can understand and generate human-like language. GPT-4, Llama, and Gemma are examples. Think of it as a very knowledgeable assistant that can write, summarize, and answer questions.</div>
+
+    <div class="glossary-term">Ollama</div>
+    <div class="glossary-def">A tool that lets you run LLMs locally on your own computer, without sending any data to external servers. Important for healthcare where patient data must stay private.</div>
+
+    <div class="glossary-term">Persona</div>
+    <div class="glossary-def">A representation of a type of user with specific characteristics. This system defines five personas (Novice, Intermediate, Expert, Regulatory, Executive) that determine how the AI responds.</div>
+
+    <div class="glossary-term">RAG (Retrieval-Augmented Generation)</div>
+    <div class="glossary-def">A technique where an AI first retrieves relevant information from a knowledge base, then uses that information to generate an answer. Without RAG, the AI can only use what it learned during training. With RAG, it can answer questions about documents it has never seen before.</div>
+
+    <div class="glossary-term">RECIST 1.1</div>
+    <div class="glossary-def">Response Evaluation Criteria in Solid Tumors, version 1.1. A standardized way to measure whether cancer tumors are growing, shrinking, or staying the same during treatment. Commonly referenced in clinical trial documents.</div>
+
+    <div class="glossary-term">Reciprocal Rank Fusion (RRF)</div>
+    <div class="glossary-def">An algorithm that combines rankings from multiple search engines using the formula score(d) = sum of 1/(k + rank). A document ranked #1 by both engines gets a higher combined score than a document ranked #1 by only one. Used by Elasticsearch, Azure Cognitive Search, and Pinecone.</div>
+
+    <div class="glossary-term">Regex (Regular Expression)</div>
+    <div class="glossary-def">A pattern-matching language used to search for specific text patterns. The query classifier uses regex to detect words like "how to" (procedure) or "FDA" (compliance) in user questions.</div>
+
+    <div class="glossary-term">Semantic Search</div>
+    <div class="glossary-def">A search method that finds documents based on meaning rather than exact keywords. If you search for "heart attack symptoms," it can find a document about "signs of myocardial infarction" even though the exact words are different.</div>
+
+    <div class="glossary-term">Session State</div>
+    <div class="glossary-def">In Streamlit, a way to store data that persists between user interactions. When you upload a document, the resulting index is stored in session state so it is available when you ask questions later.</div>
+
+    <div class="glossary-term">Streamlit</div>
+    <div class="glossary-def">A Python library that lets you build web applications using only Python code -- no HTML, CSS, or JavaScript required. Perfect for data science demos and research prototypes.</div>
+
+    <div class="glossary-term">Vector Database</div>
+    <div class="glossary-def">A database optimized for storing and searching embeddings (lists of numbers). Instead of matching exact text like a traditional database, it finds the most mathematically similar vectors. ChromaDB is the vector database used in this project.</div>
+
+    <div class="glossary-term">Word Boundary</div>
+    <div class="glossary-def">In regex, the <code>\b</code> marker that matches the edge of a word. Used in this project so that the keyword "coo" matches the title "COO" but not the word "coordinator."</div>
+</section>
+
+<!-- FOOTER -->
+<footer style="padding: 40px 50px; text-align: center; color: #888; font-size: 13px; border-top: 1px solid var(--color-border);">
+    <p><strong>Adaptive RAG Clinical Assistant</strong> &middot; Version 2.0.0 &middot; M.Tech Thesis, IIT Jodhpur</p>
+    <p>Author: Khalid Siddiqui &middot; Supervisor: Dr. Divya Saxena &middot; Apache 2.0 License</p>
+    <p style="margin-top: 8px; color: #aaa;">Generated on 2026-02-18. This document is self-contained and requires no server to view.</p>
+</footer>
+
+</div><!-- end .main -->
+
+<!-- Initialize libraries -->
+<script>
+    // Highlight.js
+    hljs.highlightAll();
+
+    // Mermaid
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        themeVariables: {
+            primaryColor: '#eef2ff',
+            primaryTextColor: '#1a1a2e',
+            primaryBorderColor: '#4361ee',
+            lineColor: '#7209b7',
+            secondaryColor: '#f3e8ff',
+            tertiaryColor: '#ecfdf5',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            fontSize: '13px'
+        },
+        flowchart: {
+            useMaxWidth: true,
+            htmlLabels: true,
+            curve: 'basis'
+        },
+        sequence: {
+            useMaxWidth: true,
+            showSequenceNumbers: true,
+            actorFontFamily: 'Inter, system-ui, sans-serif',
+            messageFontFamily: 'Inter, system-ui, sans-serif',
+            noteFontFamily: 'Inter, system-ui, sans-serif'
+        }
+    });
+</script>
+
+</body>
+</html>

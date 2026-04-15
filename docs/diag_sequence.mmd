@@ -1,0 +1,38 @@
+sequenceDiagram
+    actor User
+    participant UI as Streamlit UI
+    participant QC as QueryClassifier
+    participant PD as PersonaDetector
+    participant HR as HybridRetriever
+    participant CDB as ChromaDB
+    participant BM as BM25 Index
+    participant RRF as RRF Fusion
+    participant PB as PromptBuilder
+    participant LF as LLMFactory
+    participant LLM as LLM Provider
+
+    User->>UI: Types question and clicks Get Answer
+    UI->>UI: Check cache (hash of query)
+    UI->>QC: classify_query(question)
+    QC-->>UI: QueryType (e.g. PROCEDURE)
+    UI->>PD: detect_user_type(profile)
+    PD-->>UI: UserType (e.g. EXPERT)
+    UI->>PD: get_response_config(user_type, query_type)
+    PD-->>UI: ResponseConfig (tables, length, style)
+    UI->>HR: retrieve_with_metadata(question, top_k=5)
+    HR->>CDB: similarity_search(question, k=10)
+    CDB-->>HR: 10 semantic results
+    HR->>BM: invoke(question)
+    BM-->>HR: 10 lexical results
+    HR->>RRF: fuse(semantic, lexical, top_n=5)
+    RRF-->>HR: 5 RRFResult objects
+    HR-->>UI: documents + timing + stats
+    UI->>UI: deduplicate_documents()
+    UI->>PB: build_adaptive_prompt(docs, query, config)
+    PB-->>UI: Complete prompt string
+    UI->>LF: LLMFactory.create(provider_config)
+    LF-->>UI: LLMProvider instance
+    UI->>LLM: generate(prompt, temperature=0)
+    LLM-->>UI: Response text
+    UI->>UI: Cache result
+    UI-->>User: Display answer + sources + stats

@@ -1,0 +1,152 @@
+# Adaptive RAG Clinical Assistant - Git Ignore
+# ============================================================
+# CLAUDE.md git-ignored project folders (only READMEs committed)
+# ============================================================
+data/
+results/
+reports/
+tasks/
+
+# Claude Code local settings and session cache
+.claude/
+
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ============================================================
+# Virtual Environments
+# ============================================================
+venv/
+ENV/
+env/
+.venv/
+
+# ============================================================
+# Tool caches
+# ============================================================
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ============================================================
+# IDE / Editor
+# ============================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ============================================================
+# Environment Variables
+# ============================================================
+.env
+.env.local
+.env.*.local
+*.env
+
+# ============================================================
+# Vector Databases (ChromaDB)
+# ============================================================
+chroma_*/
+chroma*/
+*.sqlite3
+temp_*/
+temp_compare_*/
+
+# ============================================================
+# Model Cache
+# ============================================================
+.cache/
+models/
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# ============================================================
+# Office lock / temp files
+# ============================================================
+~$*
+~$*.docx
+~$*.pptx
+~$*.xlsx
+
+# ============================================================
+# Office binaries (broad deny, with explicit deliverables allowed below)
+# ============================================================
+*.pdf
+*.docx
+*.pptx
+IRC/
+irc.pdf
+
+# Keep these deliverables
+!docs/project_explainer.docx
+!docs/project_explainer_v2.docx
+!docs/architecture_diagram.pptx
+!docs/rag-system/figures/*.pdf
+!docs/rag-system/figures/*.png
+
+# Generated report bundles in docs/rag-system (recreatable via generate_*.py)
+docs/rag-system/*.docx
+
+# ============================================================
+# Results & Outputs
+# ============================================================
+results/*.bin
+results/temp_*/
+
+# ============================================================
+# Logs
+# ============================================================
+*.log
+logs/
+
+# ============================================================
+# Jupyter Notebooks
+# ============================================================
+.ipynb_checkpoints/
+*.ipynb
+
+# ============================================================
+# OS Generated
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ============================================================
+# Temporary Files
+# ============================================================
+*.tmp
+*.temp
+*.bak

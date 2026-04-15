@@ -1,0 +1,186 @@
+<phase name="1-explore">
+BEFORE WRITING ANYTHING:
+
+1. Use your file tools to map the full codebase structure
+2. Read every file relevant to: ingestion, chunking, embedding, indexing, retrieval, prompt construction, and generation
+3. List the files you have read and confirm what is actually    implemented vs. absent
+4. Only proceed to Phase 2 once exploration is complete
+</phase>
+
+---
+
+<phase name="2-document">
+Produce a single, professionally formatted .docx file documenting the complete end-to-end RAG pipeline as implemented in THIS codebase.
+
+SAVE TO: docs/rag-system/rag_pipeline.docx
+
+---
+
+## DOCUMENT STRUCTURE
+
+### Cover Page
+- Title: "RAG Pipeline Architecture"
+- Subtitle: "Clinical RAG Assistant — Technical Documentation"
+- Version, date, system name
+
+### Table of Contents
+Auto-generated, linked to all numbered sections below.
+
+### Section 1 — Pipeline Overview
+Write a concise paragraph explaining the two-phase architecture (offline indexing + online query). Then produce:
+
+DIAGRAM 1 — End-to-End Flow
+Render as embedded PNG using mermaid CLI:
+
+  flowchart LR
+  subgraph OFFLINE
+    A[Raw Documents] --> B[Ingestion]
+    B --> C[Chunking]
+    C --> D[Embedding]
+    D --> E[(Vector Index)]
+    C --> F[(BM25 Index)]
+  end
+  subgraph ONLINE
+    G[User Query] --> H[Query Embedding]
+    H --> I[Hybrid Retrieval]
+    E --> I
+    F --> I
+    I --> J[RRF Re-ranking]
+    J --> K[Context Assembly]
+    K --> L[Prompt Builder]
+    L --> M[LLM]
+    M --> N[Response]
+  end
+
+Adapt this diagram to match what is ACTUALLY in the codebase. Remove any nodes that don't exist. Add any that are missing.
+
+---
+
+### Section 2 — Data Ingestion
+Document:
+- Supported file types and the parser used for each
+- Preprocessing steps applied (cleaning, normalisation, metadata extraction)
+- The internal Document schema produced as output
+- Code reference: file path → class/function name for each loader
+
+Parameter table columns: Parameter | Default | Description | Configured In
+
+---
+
+### Section 3 — Chunking Strategy
+Document:
+- Chunking method used (recursive / semantic / sentence-level / fixed)
+- Chunk size, overlap, separator priority order
+- Rationale: why this method was chosen for clinical text
+- How chunk metadata is attached (doc_id, offsets, trial_id, etc.)
+
+DIAGRAM 2 — Chunking & Overlap
+Render as embedded PNG: show a document being split into overlapping chunks with token boundaries clearly labelled. Use a flowchart or annotated ASCII if mermaid is insufficient.
+
+Parameter table: chunk_size, chunk_overlap, separators, tokenizer
+
+---
+
+### Section 4 — Embedding
+Document:
+- Model name and source (HuggingFace / OpenAI / local)
+- Embedding dimensionality
+- Pooling strategy and normalisation method
+- Batch size and hardware considerations
+- Any domain-specific fine-tuning applied
+
+Parameter table: model, dimensions, pooling, normalisation, batch_size — all with defaults and config file
+
+---
+
+### Section 5 — Index Construction
+Document:
+- Vector store used (FAISS / Chroma / Pinecone / Weaviate / other)
+- Indexing algorithm (HNSW / flat / IVF / other) and its parameters
+- Sparse index used for BM25 (if present)
+- Metadata stored alongside each vector
+- How indexes are persisted to disk and reloaded
+
+DIAGRAM 3 — Index + Retrieval Flow
+Render as embedded PNG:
+Query → [Query Embedding] → [Dense Search] ─┐
+                                              ├→ [RRF Fusion] → Top-K Chunks
+Query → [Tokenise]        → [BM25 Search]  ─┘
+
+Adapt to match actual implementation.
+
+---
+
+### Section 6 — Hybrid Retrieval & Re-ranking
+Document:
+- Dense retrieval: similarity metric, top-k
+- Sparse retrieval: BM25 or equivalent, top-k
+- RRF fusion: formula, k constant, implementation
+- Score threshold filtering (if present)
+- Final top-k passed to augmentation
+
+RRF formula block:
+  RRF_score(chunk) = Σ 1 / (k + rank_in_list_i)
+
+Parameter table: dense_top_k, sparse_top_k, rrf_k, score_threshold, final_top_k
+
+---
+
+### Section 7 — Prompt Augmentation
+Document:
+- How retrieved chunks are formatted and injected into the prompt
+- System prompt structure and persona adaptation logic
+- Token budget management: how the system fits context within limits
+- The full prompt template (system + context block + user query)
+
+DIAGRAM 4 — Prompt Layout
+Render as embedded PNG showing the layered prompt structure:
+  ┌─ SYSTEM PROMPT (role + persona + constraints) ─┐
+  ├─ CONTEXT BLOCK (chunks with source labels)     ─┤
+  └─ USER QUERY                                    ─┘
+
+---
+
+### Section 8 — Generation
+Document:
+- LLM(s) supported and their identifiers
+- Generation parameters: temperature, max_tokens, top_p, streaming
+- Output schema: what the GeneratedResponse object contains
+- Citation and confidence parsing logic
+
+Parameter table: provider, model, temperature, max_tokens, top_p, stream
+
+### Section 9 — Configuration Reference
+A single consolidated table of ALL configurable parameters across all stages, showing: Parameter | Default | Stage | Config File
+
+---
+
+## OUTPUT REQUIREMENTS
+
+ACCURACY:
+- If a feature is NOT in the codebase, write: ⚠️ Not yet implemented — [brief explanation]
+- Never document a function or parameter you cannot find evidence of
+
+CODE ANCHORING:
+- Every major claim must cite: src/path/file.py → ClassName.method()
+- Use inline code formatting for all file paths and function names
+
+DIAGRAMS:
+- Render every Mermaid diagram as a PNG using the mermaid CLI and embed it inline in the .docx at the correct section position
+- If mermaid CLI is unavailable, use python-docx drawing or clearly labelled ASCII art as fallback
+- Each diagram must have a numbered caption: "Figure 1 — ..."
+
+DOCX FORMATTING:
+- Use the docx npm library (or python-docx) to generate the file
+- Cover page with title, subtitle, date
+- Auto-generated Table of Contents
+- Heading 1 for sections, Heading 2 for subsections
+- All parameter tables formatted with header row shading
+- Code references in a monospace font (Courier New or equivalent)
+- Page numbers in footer
+- Professional colour scheme: dark navy headers, white body, teal accent on table headers (matching the app UI theme)
+
+CONSISTENCY:
+- Use these exact component names throughout: DocumentLoader, RecursiveSemanticSplitter, EmbeddingService, FAISSIndex, BM25Index, HybridRetriever, PromptBuilder, LLMGenerator
+
+</phase>

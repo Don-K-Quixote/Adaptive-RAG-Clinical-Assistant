@@ -1,0 +1,52 @@
+[project]
+name = "adaptive-rag-clinical-assistant"
+version = "2.0.0"
+description = "Adaptive RAG system for clinical trial documentation with persona-based responses"
+requires-python = ">=3.11"
+authors = [{ name = "Khalid Siddiqui" }]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [
+    ".git",
+    "__pycache__",
+    ".ruff_cache",
+    ".mypy_cache",
+    ".pytest_cache",
+    "dist",
+    "*.egg-info",
+    "results",
+    "data",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults (FastAPI pattern)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true

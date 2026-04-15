@@ -1,0 +1,222 @@
+# Claude Code Prompt — Documentation Index
+
+<phase name="1-explore">
+BEFORE WRITING ANYTHING:
+
+1. You have already produced four documentation files in a prior session. Confirm they exist at these exact paths:
+   - docs/rag-system/rag_pipeline_updated.docx
+   - docs/rag-system/adaptive_evaluation_updated.docx
+   - docs/rag-system/benchmark_evaluations_updated.docx
+   - docs/rag-system/hallucination_mitigation_updated.docx
+
+2. Do NOT attempt to read the .docx files as text — they are binary files. Instead, derive all summaries and parameter values by reading the original source code directly, exactly as you did when producing the four documents.
+
+3. Re-read the following source files to refresh your understanding before writing the index:
+
+   PIPELINE:
+   - src/prompts.py        (system prompt, grounding instruction, source tagging)
+   - src/faithfulness.py   (faithfulness checker algorithm, thresholds)
+   - Any retrieval, chunking, embedding, and generation modules you read during the rag_pipeline session
+
+   EVALUATION:
+   - classification_accuracy, readability_analysis, format_compliance, adaptive_vs_generic source files
+   - model_comparison, hybrid_vs_semantic, persona_evaluation, latency_measurement source files
+
+   CONFIGURATION:
+   - All config files (chunking, embeddings, retrieval, LLM, personas) that contain default parameter values
+
+4. Compile a master list of every key parameter and its default value — you will need this for the quick-reference table in the index document
+
+5. Only proceed to Phase 2 once source reading is complete
+</phase>
+
+---
+
+<phase name="2-document">
+Produce a single, professionally formatted index document that serves as the entry point and navigation hub for the entire Clinical RAG Assistant documentation suite.
+
+DECIDE ON FORMAT FIRST:
+- If this documentation suite will be read primarily in a repository (GitHub, GitLab, internal wiki) → save as: docs/rag-system/index.md
+- If this suite will be distributed as a standalone document package alongside the four .docx files → save as: docs/rag-system/index.docx
+
+Default to index.docx for consistency with the rest of the suite unless there is a clear reason to use markdown.
+
+---
+
+## DOCUMENT STRUCTURE
+
+### Cover Page (if .docx)
+- Title: "Clinical RAG Assistant — Technical Documentation"
+- Subtitle: "Documentation Suite Index & System Overview"
+- Version, date
+- One-sentence system description: "An adaptive, hallucination-mitigated Retrieval-Augmented Generation system for clinical trial document intelligence."
+
+---
+
+### Section 1 — System Overview
+
+Write a concise 2–3 paragraph introduction covering:
+- What the Clinical RAG Assistant does and who uses it
+- The three user personas (Beginner / Intermediate / Expert PI) and how the system adapts to each
+- Why this system requires stricter documentation standards than a general-purpose RAG system (clinical stakes, auditability, regulated deployment context)
+
+DIAGRAM 1 — Bird's-Eye System Architecture
+Render as embedded PNG using mermaid CLI.
+This is the single most important diagram in the entire suite — it must show the complete system at a glance, from document ingestion through to verified response output, with every major component named using the confirmed canonical names:
+
+  graph TD
+    subgraph OFFLINE ["Offline — Indexing Phase"]
+      A[Clinical Documents\nPDF · DOCX · XML] --> B[DocumentLoader]
+      B --> C[RecursiveSemanticSplitter]
+      C --> D[EmbeddingService\nHuggingFace]
+      D --> E[(FAISSIndex\nHNSW)]
+      C --> F[(BM25Index)]
+    end
+
+    subgraph ONLINE ["Online — Query Phase"]
+      G[User Query\n+ Expertise Level] --> H[HybridRetriever\nDense + BM25 + RRF]
+      E --> H
+      F --> H
+      H --> I[PromptBuilder\nSystem Prompt + Grounding\n+ Source Tags]
+      I --> J[LLMGenerator\nGPT-4o / Ollama]
+      J --> K[FaithfulnessChecker\nCosine Similarity Score]
+      K --> L[✅ Verified Response\n+ Faithfulness Score]
+    end
+
+    subgraph EVAL ["Evaluation & Benchmarking"]
+      M[Adaptive Evals\nclassification · readability\nformat · adaptive_vs_generic]
+      N[Benchmark Evals\nmodel_comparison · hybrid_vs_semantic\npersona_evaluation · latency_measurement]
+    end
+
+    L --> M
+    L --> N
+
+    style OFFLINE fill:#0B1829,color:#7DD3FC
+    style ONLINE  fill:#112240,color:#7DD3FC
+    style EVAL    fill:#1A3356,color:#7DD3FC
+    style L       fill:#10B981,color:#fff
+
+Adapt every node to use the actual class and function names confirmed from the source code. Add or remove nodes to match what is actually implemented.
+
+---
+
+### Section 2 — Document Map
+
+A table linking to all four documents with audience and purpose:
+
+| Document | File | Primary Audience | Purpose |
+|---|---|---|---|
+| RAG Pipeline Architecture | rag_pipeline.docx | ML Engineers, Developers | End-to-end pipeline from ingestion to generation |
+| Adaptive Evaluation Suite | adaptive_evaluation.docx | Researchers, QA Engineers | Four adaptive evals measuring system intelligence |
+| Benchmark Evaluations | benchmark_evaluations.docx | ML Engineers, Clinical Informatics | Retrieval quality, embedding, latency benchmarks |
+| Hallucination Mitigation | hallucination_mitigation.docx | Clinical Governance, Safety Officers | Three-layer defense against fabricated outputs |
+
+---
+
+### Section 3 — Document Summaries
+
+One summary per document. Each summary must be:
+- Exactly one paragraph (4–6 sentences)
+- Written from the source code, not invented
+- Ending with a one-sentence statement of when to consult this doc
+
+#### 3.1 RAG Pipeline Architecture
+Summarise the seven-stage pipeline: ingestion → chunking → embedding → indexing → hybrid retrieval with RRF → prompt augmentation with source tagging → generation. Name the key technology choices (FAISS HNSW, BM25, ClinicalBERT or actual
+embedding model, GPT-4o / Ollama). End with: when to read this.
+
+#### 3.2 Adaptive Evaluation Suite
+Summarise all four adaptive evals: classification_accuracy, readability_analysis, format_compliance, adaptive_vs_generic. Explain the core claim the suite validates — that adaptation produces measurably better outputs than a generic baseline. Name the Adaptive Advantage Score as the headline metric.
+End with: when to read this.
+
+#### 3.3 Benchmark Evaluations
+Summarise all four benchmarks: model_comparison, hybrid_vs_semantic, persona_evaluation, latency_measurement. Explain that these measure raw system capability independent of any single user interaction. Name the key metrics (retrieval precision, latency percentiles, persona gap).
+End with: when to read this.
+
+#### 3.4 Hallucination Mitigation
+Summarise all three confirmed layers:
+Layer 1 — SYSTEM_PROMPT forbidding fabrication
+Layer 2 — _GROUNDING_INSTRUCTION + source tagging
+Layer 3 — FaithfulnessChecker with cosine similarity scoring, 0.45 warning threshold, 0.35 sentence-level flagging
+State clearly that the system detects but does not automatically block low-faithfulness responses. End with: when to read this.
+
+---
+
+### Section 4 — Quick-Reference Parameter Table
+
+A single consolidated table of the most important system parameters across all pipeline stages and evaluation modules.
+Populate ONLY from values confirmed in the source code:
+
+| Parameter | Value | Stage | Description | Config File |
+|---|---|---|---|---|
+| chunk_size | [from code] | Chunking | Max tokens per chunk | [from code] |
+| chunk_overlap | [from code] | Chunking | Shared tokens between chunks | [from code] |
+| embedding_model | [from code] | Embedding | Model name and source | [from code] |
+| embedding_dimensions | [from code] | Embedding | Vector dimensionality | [from code] |
+| dense_top_k | [from code] | Retrieval | Chunks from FAISS search | [from code] |
+| sparse_top_k | [from code] | Retrieval | Chunks from BM25 search | [from code] |
+| rrf_k | [from code] | Retrieval | RRF smoothing constant | [from code] |
+| final_top_k | [from code] | Retrieval | Chunks sent to prompt | [from code] |
+| faithfulness_warning | [from code] | Mitigation | Overall score warning threshold | src/faithfulness.py |
+| faithfulness_sentence | [from code] | Mitigation | Sentence-level flag threshold | src/faithfulness.py |
+| llm_temperature | [from code] | Generation | Sampling temperature | [from code] |
+| llm_max_tokens | [from code] | Generation | Response length cap | [from code] |
+
+Add any additional parameters discovered during Phase 1 that are significant enough to belong in a quick-reference table. Remove any rows where the value cannot be confirmed from code.
+
+---
+
+### Section 5 — Known System Gaps
+
+A brief consolidated list of ⚠️ gaps across all four documents so that a governance reviewer can see the full picture in one place without reading all four documents:
+
+Format each gap as:
+⚠️ [Gap name] — [one sentence on risk] — [documented in: filename]
+
+Include at minimum the confirmed gaps from hallucination_mitigation:
+- NLI-based entailment checking
+- Automatic response blocking on low faithfulness
+- Self-consistency sampling
+
+Add any additional gaps discovered across the other three documents.
+
+---
+
+### Section 6 — How to Use This Documentation Suite
+
+A short practical guide (not a list — write in prose) explaining:
+- The recommended reading order for each audience type
+- How the four documents cross-reference each other
+- How to keep the suite up to date when the codebase changes (which document to update when you change the embedding model, add a new eval, modify the system prompt, etc.)
+
+---
+
+## OUTPUT REQUIREMENTS
+
+ACCURACY:
+- All summaries must derive from source code, not from the .docx files (which cannot be read as text)
+- Parameter table values must come from confirmed config files or hardcoded constants — mark any unknown value as [confirm]
+- Do not invent gaps — only list gaps confirmed during exploration
+
+CODE ANCHORING:
+- Section 3 summaries should cite key file paths inline (e.g., "src/faithfulness.py implements...")
+- Parameter table Config File column must reference actual paths
+
+DIAGRAMS:
+- Diagram 1 is the centrepiece of this document — invest significant effort in making it accurate and complete
+- Render as PNG via mermaid CLI, embed inline after Section 1
+- Caption: "Figure 1 — Clinical RAG Assistant: Complete System Architecture"
+- If mermaid CLI unavailable, produce detailed ASCII art
+
+FORMATTING (if .docx):
+- Apply the full DOCX formatting standard from the header
+- Section 5 (Known Gaps) formatted with red left border
+- Parameter table: teal header row, alternating row shading for readability
+- Document summaries in Section 3: each in a light-blue callout box to visually distinguish them from body text
+
+CONSISTENCY:
+- Use canonical component names exactly as defined in the header
+- Use expertise level labels exactly: Beginner / Intermediate / Expert
+- Source tag format exactly: [Source N: Page X, Chunk Y]
+- All four document filenames exactly as listed in Section 2
+
+</phase>

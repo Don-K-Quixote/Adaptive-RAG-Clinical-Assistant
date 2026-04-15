@@ -1,0 +1,390 @@
+
+<phase name="1-explore">
+BEFORE WRITING ANYTHING:
+
+1. Use your file tools to map the full codebase structure
+
+2. Hallucination mitigation in this codebase is implemented across THREE confirmed layers. Read each file in full:
+
+   LAYER 1 — System Prompt (Pre-generation)
+   - File: src/prompts.py — read lines 21–27 specifically
+   - This contains SYSTEM_PROMPT passed as the system role message to every LLM call
+   - Records: exact forbidden behaviours listed, exact instruction for handling insufficient context
+
+   LAYER 2 — Grounding Instruction (Pre-generation, in-prompt)
+   - File: src/prompts.py — read lines 30–34 specifically
+   - This contains _GROUNDING_INSTRUCTION injected into the user prompt immediately before the question
+   - Also read: format_source_reference() — the function that wraps retrieved chunks in [Source N: Page X, Chunk Y] tags
+   - Records: exact instruction wording, injection position relative to retrieved context and user question
+
+   LAYER 3 — Post-generation Faithfulness Scorer (Runtime)
+   - File: src/faithfulness.py — read in full
+   - Class: FaithfulnessChecker
+   - Method: FaithfulnessChecker.check()
+   - Records: exact algorithm, embedding model reused, scoring formula, threshold values (0.45 overall, 0.35 sentence-level), how results surface in the Streamlit UI
+
+3. Also read:
+   - app.py — to confirm how all three layers are wired into the main application pipeline and where in the request lifecycle each layer is invoked
+   - tests/test_prompts.py — to document what is validated: grounding requirement presence, citation presence when configured, source tag format (page + chunk ID)
+   - Any config files that control threshold values or toggle any of the three mechanisms on/off
+
+4. For each mechanism record:
+   - Exact file path and line numbers
+   - Class and function name
+   - All threshold values and their source (hardcoded vs config)
+   - Exact wording of any prompt instructions (quote directly from the source file — do not paraphrase)
+
+5. All three layers ARE confirmed implemented. The ⚠️ warning applies only to sub-features not present — e.g., automatic response blocking on low faithfulness score, NLI-based entailment checking, or self-consistency sampling.
+
+6. Only proceed to Phase 2 once all files have been fully read
+</phase>
+
+---
+
+<phase name="2-document">
+Produce a single, professionally formatted .docx file documenting every hallucination mitigation mechanism as implemented in THIS codebase. This document is intended for clinical governance, safety officers, and senior developers. 
+It must be precise, auditable, and honest about gaps.
+
+SAVE TO: docs/rag-system/hallucination_mitigation.docx
+
+---
+
+## DOCUMENT STRUCTURE
+
+### Cover Page
+- Title: "Hallucination Mitigation"
+- Subtitle: "Clinical RAG Assistant — Technical Documentation"
+- Version, date, system name
+- Purpose statement:
+  "This document describes every mechanism implemented to prevent the Clinical RAG Assistant from generating factually unsupported or fabricated clinical content, and the limits of those mechanisms."
+
+### Table of Contents
+Auto-generated, linked to all numbered sections below.
+
+---
+
+### Section 1 — Defense-in-Depth Overview
+
+Write a concise paragraph explaining WHY a layered approach is necessary for a clinical RAG system — single-point defenses are insufficient because a hallucination that escapes one layer must be caught by the next. 
+Reference the clinical stakes: a fabricated eligibility criterion or incorrect p-value has direct patient safety implications.
+
+Then present the confirmed three-layer architecture as a summary table:
+
+| Layer | When | Mechanism | File |
+|---|---|---|---|
+| System Prompt | Before generation | LLM role instruction forbidding fabrication | src/prompts.py |
+| Grounding Instruction | Before generation | In-prompt constraint injected near the question | src/prompts.py |
+| Faithfulness Scorer | After generation | Cosine similarity against retrieved chunks | src/faithfulness.py |
+
+DIAGRAM 1 — Layered Defense Architecture
+Render as embedded PNG using mermaid CLI:
+
+  graph TD
+    subgraph PRE ["Pre-Generation Defenses"]
+      A[Layer 1: System Prompt\nsrc/prompts.py:21-27\nForbids fabrication + knowledge outside context]
+      B[Layer 2: Grounding Instruction\nsrc/prompts.py:30-34\nIn-prompt constraint at point of generation]
+    end
+
+    subgraph GEN ["Generation"]
+      C[LLM Call\nwith source-tagged context chunks]
+    end
+
+    subgraph POST ["Post-Generation Detection"]
+      D[Layer 3: FaithfulnessChecker.check\nsrc/faithfulness.py\nCosine sim score per sentence]
+    end
+
+    subgraph UI ["User-Facing Signals"]
+      E[Faithfulness Score 0.0–1.0]
+      F[Warning banner if score < 0.45]
+      G[Low-confidence sentence list if any < 0.35]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    D --> E
+    D --> F
+    D --> G
+
+    style PRE fill:#1A3356,color:#7DD3FC
+    style GEN fill:#112240,color:#7DD3FC
+    style POST fill:#0C2A4A,color:#7DD3FC
+    style UI  fill:#071829,color:#7DD3FC
+
+Adapt node labels to use exact wording and line numbers confirmed in Phase 1. Add any additional nodes discovered in app.py.
+
+---
+
+### Section 2 — Layer 1: System Prompt
+
+#### 2.1 Purpose
+Explain the role of the system prompt as the outermost defense — it sets the LLM's behavioural contract before any user input is processed. Explain why this layer alone is insufficient (long user turns can dilute system prompt influence — hence Layer 2).
+
+#### 2.2 Implementation
+- File: src/prompts.py, lines 21–27
+- Variable: SYSTEM_PROMPT
+- How it is passed to the LLM: as the system role message in every LLM call (confirm the exact call site in app.py)
+
+Include the EXACT text of SYSTEM_PROMPT as a quoted block in the document. Do not paraphrase — quote it verbatim from the file. Format it in a styled callout box in the .docx.
+
+Document the specific behaviours the prompt forbids:
+- Fabricating information
+- Inventing citations
+- Drawing on knowledge outside the provided context
+
+And the behaviour it requires when context is insufficient:
+- State what is missing explicitly rather than speculating
+
+#### 2.3 Scope & Limitations
+- Applied to: every LLM call in the pipeline
+- Limitation: system prompt influence can be diluted by long user turns — this is why Layer 2 exists as a reinforcement
+
+#### 2.4 Code Reference
+src/prompts.py → SYSTEM_PROMPT (lines 21–27)
+app.py → [confirm the function that passes SYSTEM_PROMPT to LLM]
+
+---
+
+### Section 3 — Layer 2: Grounding Instruction & Source Tagging
+
+#### 3.1 Purpose
+Explain why a second, in-prompt grounding instruction is necessary even when Layer 1 exists. Key insight: positioning the constraint immediately before the question — after the retrieved context — means it is the last instruction the model processes before
+generating. This proximity matters for instruction-following.
+
+#### 3.2 Grounding Instruction Implementation
+- File: src/prompts.py, lines 30–34
+- Variable: _GROUNDING_INSTRUCTION
+- Injection position: after retrieved context, immediately before   the user question
+
+Include the EXACT text of _GROUNDING_INSTRUCTION as a quoted block in the document. Quote verbatim from the file.
+
+#### 3.3 Source Tagging Implementation
+- Function: format_source_reference() in src/prompts.py
+- What it does: wraps each retrieved chunk in a structured tag: [Source N: Page X, Chunk Y]
+- Why: gives the model explicit traceability anchors so it can cite sources precisely rather than vaguely
+
+DIAGRAM 2 — Prompt Assembly & Injection Layout
+Render as embedded PNG showing the exact structure of the assembled prompt sent to the LLM:
+
+  ┌─────────────────────────────────────────────────────┐
+  │ SYSTEM MESSAGE                                      │
+  │ SYSTEM_PROMPT (src/prompts.py:21-27)               │
+  │ "Do not fabricate... use only provided context..."  │
+  ├─────────────────────────────────────────────────────┤
+  │ USER MESSAGE                                        │
+  │ [Source 1: Page X, Chunk Y]                        │
+  │  <retrieved chunk text>                             │
+  │                                                     │
+  │ [Source 2: Page X, Chunk Y]                        │
+  │  <retrieved chunk text>                             │
+  │                                                     │
+  │ _GROUNDING_INSTRUCTION (src/prompts.py:30-34)      │
+  │ "Answer using ONLY the information in the           │
+  │  CONTEXT FROM DOCUMENT section above."             │
+  │                                                     │
+  │ USER QUESTION                                       │
+  │  <user's actual query>                              │
+  └─────────────────────────────────────────────────────┘
+
+Adapt exact wording from the source files confirmed in Phase 1.
+
+#### 3.4 Citation Directive
+Document the citation directive that requires the model to reference source tags inline (e.g., "According to [Source 2]...").
+Confirm whether this is part of _GROUNDING_INSTRUCTION or a separate configuration setting. Reference the exact file and variable/parameter.
+
+#### 3.5 Code Reference
+src/prompts.py → _GROUNDING_INSTRUCTION (lines 30–34)
+src/prompts.py → format_source_reference()
+app.py → [confirm injection point in prompt assembly]
+
+---
+
+### Section 4 — Layer 3: Post-Generation Faithfulness Scorer
+
+#### 4.1 Purpose
+Explain the role of Layer 3 as the detection layer — it does not prevent hallucinations but quantifies the risk that a generated response contains unsupported claims. It gives the user a verifiable signal and highlights the specific sentences to check.
+
+Critically: Layer 3 does NOT block the response. Explain the design decision — in a clinical research context, suppressing a response may be worse than flagging it for review.
+
+#### 4.2 Algorithm
+- File: src/faithfulness.py
+- Class: FaithfulnessChecker
+- Method: FaithfulnessChecker.check()
+- Embedding model: reuses HuggingFaceEmbeddings instance already in session state — no additional model download required
+
+Document the exact algorithm as a numbered sequence:
+
+  Step 1: Split the generated response into individual sentences
+  Step 2: For each sentence s_i:
+            embed sentence → vector v_i
+            for each retrieved chunk c_j:
+              compute cosine_sim(v_i, embed(c_j))
+            score_i = max cosine similarity across all chunks
+  Step 3: overall_score = mean(score_i for all sentences)
+  Step 4: Apply thresholds and surface results in UI
+
+Present the core formula as a formula block:
+
+  score_i = max { cosine_sim(embed(s_i), embed(c_j)) }
+              j ∈ retrieved_chunks
+
+  overall_score = (1/n) × Σ score_i
+                            i=1..n
+
+#### 4.3 Threshold Values & UI Behaviour
+
+Document all three threshold-driven behaviours:
+
+| Condition | Threshold | UI Behaviour | Configured In |
+|---|---|---|---|
+| Overall score displayed | Always | Faithfulness Score metric (0.0–1.0) in Retrieval Statistics expander | src/faithfulness.py |
+| Warning banner shown | overall_score < 0.45 | Orange warning banner rendered | src/faithfulness.py |
+| Sentence-level detail shown | any sentence score < 0.35 | Nested expander lists low-confidence sentences in orange with individual scores | src/faithfulness.py |
+
+Confirm exact threshold values (0.45 and 0.35) from the source file — if they differ from above, use the actual values.
+
+DIAGRAM 3 — Faithfulness Scoring Flow
+Render as embedded PNG:
+
+  sequenceDiagram
+    participant R as Generated Response
+    participant FC as FaithfulnessChecker.check()
+    participant E as HuggingFaceEmbeddings
+    participant UI as Streamlit UI
+
+    R->>FC: response text + retrieved chunks
+    FC->>FC: split response into sentences
+    loop For each sentence
+      FC->>E: embed(sentence)
+      FC->>E: embed(chunk_j) for all j
+      E-->>FC: cosine similarities
+      FC->>FC: score_i = max similarity
+    end
+    FC->>FC: overall_score = mean(score_i)
+    FC-->>UI: overall_score → Faithfulness Score metric
+    FC-->>UI: if overall_score < 0.45 → warning banner
+    FC-->>UI: if any score_i < 0.35 → low-confidence sentence list
+
+DIAGRAM 4 — Faithfulness Score Decision Flow
+Render as embedded PNG showing the branching logic:
+
+  graph TD
+    A[FaithfulnessChecker.check complete] --> B{overall_score}
+    B -->|≥ 0.45| C[Display score only\nNo warning]
+    B -->|< 0.45| D[Display score +\nWarning banner]
+    D --> E{Any sentence score}
+    E -->|all ≥ 0.35| F[Warning banner only]
+    E -->|any < 0.35| G[Warning banner +\nNested expander with\nlow-confidence sentences]
+
+    style C fill:#065F46,color:#fff
+    style F fill:#92400E,color:#fff
+    style G fill:#7F1D1D,color:#fff
+
+#### 4.4 Scope & Limitations
+- This layer detects but does not block responses
+- Scores reflect semantic similarity, not logical entailment — a sentence can score highly if it uses similar vocabulary to the retrieved chunks even if the claim direction differs
+- ⚠️ NLI-based entailment checking (e.g., using a dedicated NLI model to verify claim direction) is NOT implemented
+- ⚠️ Automatic response suppression on low faithfulness score is NOT implemented
+- ⚠️ Self-consistency sampling (generating multiple responses and comparing) is NOT implemented
+
+#### 4.5 Code Reference
+src/faithfulness.py → FaithfulnessChecker.check()
+app.py → [confirm where check() is called in the response pipeline]
+app.py → [confirm Streamlit UI components that render the results]
+
+---
+
+### Section 5 — Test Coverage
+
+Document what tests/test_prompts.py validates:
+
+#### 5.1 What Is Tested
+- Grounding requirement presence: every assembled prompt contains _GROUNDING_INSTRUCTION
+- Citation presence: when citation mode is enabled, source tags appear in the prompt
+- Source tag format: tags conform to [Source N: Page X, Chunk Y] with page and chunk IDs present
+
+#### 5.2 What Is Not Tested
+Document any hallucination mitigation behaviours that are implemented but not covered by the test suite — e.g., if faithfulness score thresholds have no automated tests. Mark each gap as ⚠️ No test coverage.
+
+#### 5.3 Code Reference
+tests/test_prompts.py → [list each test function by name]
+
+---
+
+### Section 6 — Hallucination Risk Matrix
+
+A consolidated table covering all known hallucination risk types, where they occur in the pipeline, what mitigation is applied, and how it is detected:
+
+| Hallucination Type | Where It Occurs | Mitigation Applied | Detection Method | File |
+|---|---|---|---|---|
+| Fabricated clinical fact | Generation | Layer 1 + Layer 2 prevent; Layer 3 detects | Faithfulness score < 0.45 | src/prompts.py, src/faithfulness.py |
+| Invented citation | Generation | Layer 1 explicitly forbids | Citation format test | src/prompts.py, tests/test_prompts.py |
+| Out-of-context knowledge | Generation | Layer 1 + Layer 2 restrict to retrieved context | Faithfulness score | src/prompts.py |
+| Unsupported sentence | Generation | Layer 3 flags at sentence level | Sentence score < 0.35 | src/faithfulness.py |
+| Missing gap stated as fact | Generation | Layer 2 requires stating gaps explicitly | No automated detection | src/prompts.py |
+| Wrong source attribution | Generation | Source tags provide anchors; citation directive enforces use | Citation presence test | src/prompts.py |
+
+Add or remove rows based on what you find in the codebase. Each row must reference a real file. Do not invent risk types or mitigations that are not evidenced in the code.
+
+---
+
+### Section 7 — Known Gaps & Future Work
+
+Be explicit about what is NOT implemented. This section is especially important for clinical governance reviewers. For each gap, state clearly what the risk is and what would close it:
+
+⚠️ NLI-based entailment checking
+- Risk: cosine similarity scoring can miss directional errors (a sentence affirming something the context denies may still score highly due to vocabulary overlap)
+- What would close it: a dedicated NLI model (e.g., cross-encoder) to verify claim direction against retrieved chunks
+
+⚠️ Automatic response blocking
+- Risk: low-faithfulness responses are displayed with a warning but are not suppressed — a user may proceed without reading the warning
+- What would close it: a configurable faithfulness gate that replaces the response with a refusal message when overall_score falls below a hard threshold
+
+⚠️ Self-consistency sampling
+- Risk: a single generation pass may produce a confident but unsupported answer that scores reasonably on faithfulness
+- What would close it: generating N responses and flagging high variance as a hallucination risk signal
+
+Add any additional gaps discovered during Phase 1 exploration.
+
+---
+
+## OUTPUT REQUIREMENTS
+
+ACCURACY:
+- All three layers are confirmed implemented:
+  Layer 1 → src/prompts.py:21–27 (SYSTEM_PROMPT)
+  Layer 2 → src/prompts.py:30–34 (_GROUNDING_INSTRUCTION)
+             + format_source_reference()
+  Layer 3 → src/faithfulness.py (FaithfulnessChecker.check())
+- Quote prompt text verbatim — do not paraphrase SYSTEM_PROMPT or _GROUNDING_INSTRUCTION
+- Report threshold values (0.45, 0.35) exactly as found in the source — if they differ from what is documented here, use the actual values from the file
+- The ⚠️ warning applies to sub-features not present: NLI entailment, automatic blocking, self-consistency sampling
+
+CODE ANCHORING:
+- Every claim must cite: src/path/file.py:line_range → ClassName.method() or VARIABLE_NAME
+- Include line numbers where known (confirmed above for prompts.py)
+- Use inline monospace formatting for all paths and names
+
+DIAGRAMS:
+- Render all four diagrams as PNGs using the mermaid CLI and embed inline at the correct section positions
+- Diagram captions: "Figure 1 — ...", "Figure 2 — ...", etc.
+- If mermaid CLI is unavailable, use clearly labelled ASCII art
+
+DOCX FORMATTING:
+- Use the docx npm library (or python-docx) to generate the file
+- Cover page with title, subtitle, date, purpose statement
+- Auto-generated Table of Contents
+- Heading 1 for sections, Heading 2 for subsections
+- SYSTEM_PROMPT and _GROUNDING_INSTRUCTION quoted verbatim in styled callout boxes (light blue background, monospace font)
+- Risk matrix table with shaded header row
+- Page numbers in footer
+- Professional colour scheme: dark navy headers, white body, teal accent on table headers (matching the app UI theme)
+- Section 7 (Known Gaps) formatted with red left border or highlight to signal its governance significance
+
+CONSISTENCY:
+- Use these exact names as confirmed from the codebase: SYSTEM_PROMPT, _GROUNDING_INSTRUCTION, format_source_reference(), FaithfulnessChecker, FaithfulnessChecker.check()
+- Use the same pipeline component names as appear in rag_pipeline.docx and adaptive_evaluation.docx
+- Use the same expertise level labels: Beginner / Intermediate / Expert
+- Source tag format must match exactly: [Source N: Page X, Chunk Y]
+
+</phase>
